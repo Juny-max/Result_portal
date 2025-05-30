@@ -1,0 +1,811 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-journal-text me-2"></i>Manage Courses & Programs</h2>
+    </div>
+    
+    <div class="card shadow-sm mb-4">
+        <div class="card-header py-3">
+            <ul class="nav nav-tabs card-header-tabs" id="courseProgramTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if not show_programs %}active{% endif %}" 
+                       id="courses-tab" 
+                       href="{{ url_for('admin.manage_courses') }}" 
+                       role="tab">
+                        <i class="bi bi-book me-1"></i>Courses
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if show_programs %}active{% endif %}" 
+                       id="programs-tab" 
+                       href="{{ url_for('admin.manage_programs') }}" 
+                       role="tab">
+                        <i class="bi bi-mortarboard me-1"></i>Programs
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            {% if show_programs %}
+            <div id="programs-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="mb-0"><i class="bi bi-collection me-2"></i>Programs</h4>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProgramModal">
+                        <i class="bi bi-plus-lg me-1"></i>Add Program
+                    </button>
+                </div>
+                {% if missing_programs %}
+                <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <div>
+                        <h6 class="alert-heading mb-2">Unregistered Programs Found</h6>
+                        <p class="mb-2">The following programs were found in student records but aren't in the programs list:</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for name in missing_programs %}
+                            <span class="badge bg-primary-subtle text-primary d-inline-flex align-items-center">
+                                {{ name }}
+                                <form method="post" action="{{ url_for('admin.import_student_program') }}" class="ms-2">
+                                    <input type="hidden" name="import_program_name" value="{{ name }}">
+                                    <button type="submit" class="btn btn-link p-0 text-primary" style="line-height: 1;">
+                                        <i class="bi bi-plus-circle"></i>
+                                    </button>
+                                </form>
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Program Name</th>
+                                <th>Description</th>
+                                <th class="text-center">Courses</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for program in programs %}
+                            <tr class="{% if selected_program and selected_program.id == program.id %}table-active{% endif %}">
+                                <td>
+                                    <a href="{{ url_for('admin.manage_programs', program_id=program.id) }}" class="text-decoration-none fw-semibold">
+                                        <i class="bi bi-mortarboard me-2"></i>{{ program.name }}
+                                    </a>
+                                </td>
+                                <td>{{ program.description|default("No description", true) }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary rounded-pill">{{ program.courses|length }}</span>
+                                </td>
+                                <td class="text-nowrap text-center">
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <a href="{{ url_for('admin.edit_program', program_id=program.id) }}" 
+                                           class="btn btn-sm btn-outline-primary"
+                                           data-bs-toggle="tooltip" 
+                                           title="Edit Program">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <form method="post" action="{{ url_for('admin.archive_program', program_id=program.id) }}" class="d-inline">
+                                            <button type="submit" 
+                                                    class="btn btn-sm btn-outline-warning"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Archive Program">
+                                                <i class="bi bi-archive"></i>
+                                            </button>
+                                        </form>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#confirmDeleteModal"
+                                                data-action="{{ url_for('admin.delete_program', program_id=program.id) }}"
+                                                data-title="Delete Program"
+                                                data-message="Are you sure you want to delete '{{ program.name }}'? This action cannot be undone.">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                        No programs found. Add your first program to get started.
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if archived_programs %}
+                <div class="mt-5">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Archived Programs</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Program Name</th>
+                                    <th>Description</th>
+                                    <th class="text-center">Courses</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for program in archived_programs %}
+                                <tr class="text-muted">
+                                    <td>
+                                        <i class="bi bi-archive me-2"></i>{{ program.name }}
+                                    </td>
+                                    <td>{{ program.description|default("No description", true) }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary rounded-pill">{{ program.courses|length }}</span>
+                                    </td>
+                                    <td class="text-nowrap text-center">
+                                        <div class="d-flex gap-2 justify-content-center">
+                                            <form method="post" action="{{ url_for('admin.restore_program', program_id=program.id) }}" class="d-inline">
+                                                <button type="submit" 
+                                                        class="btn btn-sm btn-outline-success"
+                                                        data-bs-toggle="tooltip"
+                                                        title="Restore Program">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            </form>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#confirmDeleteModal"
+                                                    data-action="{{ url_for('admin.delete_program', program_id=program.id) }}"
+                                                    data-title="Delete Program"
+                                                    data-message="Are you sure you want to permanently delete '{{ program.name }}'? This action cannot be undone.">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3 text-muted">
+                                        No archived programs found.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+                {% if selected_program %}
+                <div class="mt-5">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="bi bi-journal-text me-2"></i>Courses in {{ selected_program.name }}
+                            <span class="badge bg-primary rounded-pill ms-2">{{ selected_program.courses|length }}</span>
+                        </h5>
+                        <button type="button" 
+                                class="btn btn-sm btn-primary" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#addCourseToProgramModal">
+                            <i class="bi bi-plus-lg me-1"></i>Add Course
+                        </button>
+                    </div>
+                    
+                    {% if selected_program.courses %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Title</th>
+                                    <th class="text-center">Credit Hours</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in selected_program.courses %}
+                                <tr>
+                                    <td class="fw-semibold">{{ course.code }}</td>
+                                    <td>{{ course.title }}</td>
+                                    <td class="text-center">{{ course.credit_hours or 'N/A' }}</td>
+                                    <td class="text-center">
+                                        <form method="post" 
+                                              action="{{ url_for('admin.remove_course_from_program', program_id=selected_program.id, course_id=course.id) }}"
+                                              class="d-inline">
+                                            <button type="submit" 
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Remove from Program">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 border rounded bg-light">
+                        <i class="bi bi-journal-x fs-1 text-muted d-block mb-2"></i>
+                        <p class="text-muted mb-0">No courses have been added to this program yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            <!-- End Programs Section -->
+            {% else %}
+            <!-- Courses Section -->
+            <div id="courses-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="mb-0"><i class="bi bi-journal-text me-2"></i>Courses</h4>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                        <i class="bi bi-plus-lg me-1"></i>Add New Course
+                    </button>
+                </div>
+                
+                {% if courses %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Code</th>
+                                <th>Title</th>
+                                <th class="text-center">Credit Hours</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for course in courses %}
+                            <tr>
+                                <td class="fw-semibold">{{ course.code }}</td>
+                                <td>{{ course.title }}</td>
+                                <td class="text-center">{{ course.credit_hours or 'N/A' }}</td>
+                                <td class="text-nowrap text-center">
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <a href="{{ url_for('admin.edit_course', course_id=course.id) }}" 
+                                           class="btn btn-sm btn-outline-primary"
+                                           data-bs-toggle="tooltip" 
+                                           title="Edit Course">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#confirmDeleteModal"
+                                                data-action="{{ url_for('admin.delete_course', course_id=course.id) }}"
+                                                data-title="Delete Course"
+                                                data-message="Are you sure you want to delete '{{ course.code }} - {{ course.title }}'? This action cannot be undone.">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 border rounded bg-light">
+                    <i class="bi bi-journal-x fs-1 text-muted d-block mb-3"></i>
+                    <h5 class="text-muted mb-3">No Courses Found</h5>
+                    <p class="text-muted mb-0">Get started by adding your first course</p>
+                    <button type="button" 
+                            class="btn btn-primary mt-3" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#addCourseModal">
+                        <i class="bi bi-plus-lg me-1"></i>Add Course
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            <!-- End Courses Section -->
+            {% endif %}
+        </div>
+        <!-- End Card Body -->
+    </div>
+    <!-- End Card -->
+</div>
+<!-- End Container -->
+
+<!-- Add Program Modal -->
+<div class="modal fade" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('admin.add_program') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProgramModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Add New Program
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="programName" class="form-label">Program Name</label>
+                        <input type="text" class="form-control" id="programName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="programDescription" class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                        <textarea class="form-control" id="programDescription" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Save Program
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Course to Program Modal -->
+{% if selected_program %}
+<div class="modal fade" id="addCourseToProgramModal" tabindex="-1" aria-labelledby="addCourseToProgramModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('admin.add_course_to_program', program_id=selected_program.id) }}">
+                {{ form.hidden_tag() }}  <!-- Add CSRF token -->
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCourseToProgramModalLabel">
+                        <i class="bi bi-journal-plus me-2"></i>Add Course to {{ selected_program.name }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="courseSelect" class="form-label">Select Course</label>
+                        <select class="form-select" id="courseSelect" name="course_id" required>
+                            <option value="" selected disabled>Choose a course...</option>
+                            {% for course in all_courses %}
+                                {% if course not in selected_program.courses %}
+                                    <option value="{{ course.id }}">{{ course.code }} - {{ course.title }}</option>
+                                {% endif %}
+                            {% else %}
+                                <option value="" disabled>No available courses</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" {% if not all_courses %}disabled{% endif %}>
+                        <i class="bi bi-plus-lg me-1"></i>Add to Program
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Add Course Modal -->
+{% if form is defined and form %}
+<div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="addCourseForm" method="post" action="{{ url_for('admin.add_course') }}">
+                {{ form.hidden_tag() }}  <!-- CSRF Token -->
+                <input type="hidden" name="is_modal" value="1">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="addCourseModalLabel">
+                        <i class="bi bi-journal-plus me-2"></i>Add New Course
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <!-- Program Selection -->
+                        <div class="col-12">
+                            {{ form.program_id.label(class="form-label fw-semibold") }}
+                            {{ form.program_id(class="form-select" + (' is-invalid' if form.program_id.errors else '')) }}
+                            {% if form.program_id.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.program_id.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Course Code -->
+                        <div class="col-md-6">
+                            <label for="courseCode" class="form-label fw-semibold">
+                                <i class="bi bi-tag me-1"></i>Course Code
+                            </label>
+                            {{ form.course_code(class="form-control" + (' is-invalid' if form.course_code.errors else ''), required=True) }}
+                            {% if form.course_code.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.course_code.errors[0] }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Enter the course code (e.g., CS101)</div>
+                        </div>
+                        
+                        <!-- Credit Hours -->
+                        <div class="col-md-6">
+                            <label for="creditHours" class="form-label fw-semibold">
+                                <i class="bi bi-123 me-1"></i>Credit Hours
+                            </label>
+                            {{ form.credit_hours(class="form-control" + (' is-invalid' if form.credit_hours.errors else ''), min="1", max="10", required=True) }}
+                            <div class="form-text">Enter the number of credit hours for this course</div>
+                            {% if form.credit_hours.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.credit_hours.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Course Title -->
+                        <div class="col-12">
+                            <label for="courseTitle" class="form-label fw-semibold">
+                                <i class="bi bi-card-heading me-1"></i>Course Title
+                            </label>
+                            {{ form.course_title(class="form-control" + (' is-invalid' if form.course_title.errors else ''), required=True) }}
+                            {% if form.course_title.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.course_title.errors[0] }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Enter the course title (e.g., Introduction to Computer Science)</div>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="col-12">
+                            <label for="courseDescription" class="form-label fw-semibold">
+                                <i class="bi bi-card-text me-1"></i>Description
+                            </label>
+                            {{ form.description(class="form-control", rows="3") }}
+                            <div class="form-text">Optional: Enter a description for this course</div>
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Level -->
+                        <div class="col-md-6">
+                            <label for="level" class="form-label fw-semibold">
+                                <i class="bi bi-layers me-1"></i>Level
+                            </label>
+                            {{ form.level(class="form-select" + (' is-invalid' if form.level.errors else ''), required=True) }}
+                            <div class="form-text">Select the academic level for this course</div>
+                            {% if form.level.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.level.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Semester -->
+                        <div class="col-md-6">
+                            <label for="semester" class="form-label fw-semibold">
+                                <i class="bi bi-calendar3 me-1"></i>Semester
+                            </label>
+                            {{ form.semester(class="form-select" + (' is-invalid' if form.semester.errors else ''), required=True) }}
+                            <div class="form-text">Select the semester for this course</div>
+                            {% if form.semester.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.semester.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveCourseBtn">
+                        <i class="bi bi-save me-1"></i>Save Course
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- Fallback message if form is not available -->
+<div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="addCourseModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Error
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-octagon me-2"></i>
+                    The course form could not be loaded. Please refresh the page and try again.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="deleteModalMessage">
+                <!-- Message will be inserted here by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Cancel
+                </button>
+                <form id="deleteForm" method="post" action="" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded');
+    const addCourseForm = document.getElementById('addCourseForm');
+    const saveBtn = document.getElementById('saveCourseBtn');
+    
+    if (addCourseForm) {
+        console.log('Form found, adding submit event listener');
+        addCourseForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Form submission started');
+            
+            // Disable submit button to prevent double submission
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+            
+            // Log form data
+            const formData = new FormData(addCourseForm);
+            console.log('Form data:', Object.fromEntries(formData.entries()));
+            
+            // Get CSRF token from the form
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            
+            // Submit form via AJAX
+            console.log('Sending fetch request to:', addCourseForm.action);
+            fetch(addCourseForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                // Add credentials to include cookies
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    console.error('Response not OK, status:', response.status);
+                    return response.text().then(text => {
+                        console.error('Response text:', text);
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            throw new Error(`Invalid JSON: ${text}`);
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                const successToastEl = document.getElementById('successToast');
+                const errorToastEl = document.getElementById('errorToast');
+                const toastMessageEl = document.getElementById('toastMessage');
+                const errorToastMessageEl = document.getElementById('errorToastMessage');
+                
+                if (data.success) {
+                    // Show success message
+                    if (successToastEl && toastMessageEl) {
+                        toastMessageEl.textContent = data.message || 'Course added successfully';
+                        const toast = new bootstrap.Toast(successToastEl);
+                        toast.show();
+                        
+                        // Close the modal after a short delay
+                        setTimeout(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('addCourseModal'));
+                            if (modal) modal.hide();
+                            // Reload the page to show the new course
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        console.error('Success toast elements not found');
+                        window.location.reload(); // Fallback to page reload
+                    }
+                } else {
+                    // Show error message
+                    if (errorToastEl && errorToastMessageEl) {
+                        errorToastMessageEl.textContent = data.message || 'Error adding course';
+                        const toast = new bootstrap.Toast(errorToastEl);
+                        toast.show();
+                    } else {
+                        console.error('Error toast elements not found');
+                        alert(data.message || 'Error adding course');
+                    }
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="bi bi-save me-1"></i>Save Course';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorToastEl = document.getElementById('errorToast');
+                const errorToastMessageEl = document.getElementById('errorToastMessage');
+                
+                if (errorToastEl && errorToastMessageEl) {
+                    errorToastMessageEl.textContent = 'An error occurred. Please try again.';
+                    const toast = new bootstrap.Toast(errorToastEl);
+                    toast.show();
+                } else {
+                    console.error('Error toast elements not found');
+                    alert('An error occurred. Please try again.');
+                }
+                
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-save me-1"></i>Save Course';
+                
+                // Log the error to the console for debugging
+                if (error.response) {
+                    error.response.text().then(text => {
+                        console.error('Server response:', text);
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
+<script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Delete confirmation modal
+        const deleteModal = document.getElementById('confirmDeleteModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const actionUrl = button.getAttribute('data-action');
+                const title = button.getAttribute('data-title');
+                const message = button.getAttribute('data-message');
+                
+                const modalTitle = deleteModal.querySelector('.modal-title');
+                const modalBody = deleteModal.querySelector('.modal-body');
+                const deleteForm = deleteModal.querySelector('#deleteForm');
+                
+                if (title) modalTitle.textContent = title;
+                if (message) modalBody.textContent = message;
+                if (actionUrl) deleteForm.action = actionUrl;
+            });
+        }
+        
+        // Handle delete form submission
+        const deleteForm = document.getElementById('deleteForm');
+        if (deleteForm) {
+            deleteForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const form = e.target;
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                
+                // Disable button and show loading state
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
+                
+                // Get CSRF token
+                const csrfToken = form.querySelector('input[name="csrf_token"]').value;
+                
+                // Send AJAX request
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken,
+                        'Accept': 'application/json, text/plain, */*'
+                    },
+                    body: new URLSearchParams(new FormData(form))
+                })
+                .then(async response => {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json();
+                    }
+                    const text = await response.text();
+                    throw new Error('Expected JSON response but got: ' + text.substring(0, 100));
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const toast = new bootstrap.Toast(document.getElementById('successToast'));
+                        document.getElementById('toastMessage').textContent = data.message || 'Item deleted successfully';
+                        toast.show();
+                        
+                        // Close the modal and reload the page after a short delay
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
+                        if (modal) modal.hide();
+                        
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        // Show error message
+                        const toast = new bootstrap.Toast(document.getElementById('errorToast'));
+                        document.getElementById('errorToastMessage').textContent = data.message || 'Error deleting item';
+                        toast.show();
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const toast = new bootstrap.Toast(document.getElementById('errorToast'));
+                    let errorMessage = 'An error occurred. Please try again.';
+                    
+                    if (error.message.includes('Expected JSON response')) {
+                        errorMessage = 'Unexpected response from server. Please refresh the page and try again.';
+                        console.error('Server response was not JSON:', error.message);
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
+                    
+                    const errorElement = document.getElementById('errorToastMessage');
+                    if (errorElement) {
+                        errorElement.textContent = errorMessage;
+                        toast.show();
+                    } else {
+                        console.error('Could not find error toast message element');
+                    }
+                    
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                });
+            });
+        }
+        
+        // Initialize form validation
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            if (form.id !== 'deleteForm') {  // Skip delete form as it's handled separately
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            }
+        });
+    });
+</script>
+{% endblock %}

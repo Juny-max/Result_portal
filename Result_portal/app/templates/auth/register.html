@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .register-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .register-card {
+        width: 100%;
+        max-width: 500px;
+        border-radius: 1rem;
+        box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.05);
+        padding: 2rem 2rem 1.5rem 2rem;
+        background: #fff;
+    }
+    .form-label {
+        font-weight: 500;
+    }
+    .form-control {
+        border-radius: 0.5rem;
+    }
+    .register-btn {
+        width: 100%;
+        border-radius: 0.5rem;
+        font-weight: 500;
+    }
+    .login-link {
+        display: block;
+        margin-top: 1rem;
+        text-align: center;
+        font-size: 0.95rem;
+    }
+</style>
+<div class="register-container">
+  <div class="register-card">
+    <h2 class="text-center mb-4">Create Account</h2>
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        <label class="form-label">{{ form.username.label }}</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          {{ form.username(class_='form-control', placeholder='Username') }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">{{ form.email.label }}</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+          {{ form.email(class_='form-control', placeholder='Email') }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">{{ form.password.label }}</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          {{ form.password(class_='form-control', placeholder='Password') }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">{{ form.confirm_password.label }}</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+          {{ form.confirm_password(class_='form-control', placeholder='Confirm Password') }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">{{ form.index_number.label }}</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-hash"></i></span>
+          {{ form.index_number(class_='form-control', placeholder='Index Number') }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">{{ form.full_name.label }}</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+          {{ form.full_name(class_='form-control', placeholder='Full Name') }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">{{ form.program.label }}</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-journal-bookmark"></i></span>
+          {{ form.program(class_='form-control', placeholder='Program') }}
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label">{{ form.level.label }}</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-layers"></i></span>
+          {{ form.level(class_='form-control', placeholder='Level') }}
+        </div>
+      </div>
+      <div class="d-grid gap-2">
+        {{ form.submit(class_='btn btn-success register-btn') }}
+      </div>
+      <a href="{{ url_for('auth.login') }}" class="login-link">Already have an account? Login</a>
+    </form>
+  </div>
+</div>
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+{% endblock %}

@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="bi bi-bell-fill me-2"></i>Send Notification to Student
+                        </h4>
+                        <span class="badge bg-light text-primary">Admin</span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Flash Messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show mb-4">
+                                    <div class="d-flex align-items-center">
+                                        {% if category == 'danger' %}
+                                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                        {% elif category == 'success' %}
+                                            <i class="bi bi-check-circle-fill me-2"></i>
+                                        {% else %}
+                                            <i class="bi bi-info-circle-fill me-2"></i>
+                                        {% endif %}
+                                        <div>{{ message }}</div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        Send a direct notification to a specific student. The student will receive this message in their notifications.
+                    </div>
+
+                    <form method="POST" class="needs-validation" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row g-3">
+                            <!-- Student Selection -->
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="bi bi-person-fill me-1"></i>
+                                        {{ form.student.label.text }}
+                                    </label>
+                                    <select name="{{ form.student.name }}" id="{{ form.student.id }}" class="form-select{% if form.student.errors %} is-invalid{% endif %}" required>
+                                        <option value="" disabled selected>Select a student...</option>
+                                        {% for student in form.student.choices %}
+                                            <option value="{{ student[0] }}" {% if form.student.data == student[0]|string %}selected{% endif %}>
+                                                {{ student[1] }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">
+                                        <i class="bi bi-search"></i> Search for a student by name or ID
+                                    </div>
+                                    {% for error in form.student.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <!-- Message Input -->
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="bi bi-chat-left-text me-1"></i>
+                                        {{ form.message.label.text }}
+                                    </label>
+                                    {{ form.message(
+                                        class="form-control" + (' is-invalid' if form.message.errors else ''),
+                                        rows=6,
+                                        placeholder="Type your notification message here..."
+                                    ) }}
+                                    <div class="form-text">
+                                        <span id="charCount">0</span> characters
+                                        <span class="ms-2">
+                                            <i class="bi bi-lightbulb"></i> Keep it clear and concise
+                                        </span>
+                                    </div>
+                                    {% for error in form.message.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
+                            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+                            </a>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-primary" id="previewBtn">
+                                    <i class="bi bi-eye me-1"></i> Preview
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="sendBtn">
+                                    <i class="bi bi-send me-1"></i> Send Notification
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-envelope-paper me-2"></i>
+                    Preview Notification
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Recipient:</h6>
+                    <p id="recipientPreview" class="mb-0">[Student Name]</p>
+                </div>
+                <div class="border p-3 rounded bg-light">
+                    <h6 class="text-muted mb-2">Message:</h6>
+                    <div id="messagePreview">
+                        <p class="text-muted fst-italic mb-0">Your message will appear here...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i> Close
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmSendBtn">
+                    <i class="bi bi-send me-1"></i> Send Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize elements
+        const messageField = document.getElementById('{{ form.message.id }}');
+        const charCount = document.getElementById('charCount');
+        const previewBtn = document.getElementById('previewBtn');
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+        const recipientPreview = document.getElementById('recipientPreview');
+        const messagePreview = document.getElementById('messagePreview');
+        const studentSelect = document.getElementById('{{ form.student.id }}');
+        const sendBtn = document.getElementById('sendBtn');
+        const confirmSendBtn = document.getElementById('confirmSendBtn');
+        const form = document.querySelector('form');
+        let isSubmitting = false;
+
+        // Update character count
+        function updateCharCount() {
+            if (charCount && messageField) {
+                charCount.textContent = messageField.value.length;
+            }
+        }
+
+        // Update message preview
+        function updateMessagePreview() {
+            if (messagePreview && messageField) {
+                const message = messageField.value.trim();
+                messagePreview.innerHTML = message ? 
+                    message.replace(/\n/g, '<br>') : 
+                    '<p class="text-muted fst-italic mb-0">Your message will appear here...</p>';
+            }
+        }
+
+        // Update recipient preview
+        function updateRecipientPreview() {
+            if (recipientPreview && studentSelect) {
+                const selectedOption = studentSelect.options[studentSelect.selectedIndex];
+                recipientPreview.textContent = selectedOption ? selectedOption.text : 'No student selected';
+            }
+        }
+
+        // Initialize previews
+        updateCharCount();
+        updateMessagePreview();
+        updateRecipientPreview();
+
+        // Event listeners
+        if (messageField) {
+            messageField.addEventListener('input', function() {
+                updateCharCount();
+                updateMessagePreview();
+            });
+        }
+
+        if (studentSelect) {
+            studentSelect.addEventListener('change', updateRecipientPreview);
+        }
+
+        // Preview button click handler
+        if (previewBtn) {
+            previewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                updateMessagePreview();
+                updateRecipientPreview();
+                previewModal.show();
+            });
+        }
+
+        // Handle modal close and cleanup
+        const previewModalElement = document.getElementById('previewModal');
+        if (previewModalElement) {
+            previewModalElement.addEventListener('hidden.bs.modal', function () {
+                // Remove the modal backdrop
+                const backdrops = document.getElementsByClassName('modal-backdrop');
+                while (backdrops.length > 0) {
+                    backdrops[0].parentNode.removeChild(backdrops[0]);
+                }
+                
+                // Remove the modal-open class from body and reset styles
+                document.body.classList.remove('modal-open');
+                document.body.style.paddingRight = '';
+                document.body.style.overflow = '';
+                
+                // Reset html overflow
+                document.documentElement.style.overflow = '';
+                document.documentElement.style.paddingRight = '';
+            });
+            
+            // Also handle when modal is shown to store the scrollbar width
+            previewModalElement.addEventListener('show.bs.modal', function () {
+                // Store the current scroll position
+                const scrollY = window.scrollY;
+                // Store the current body padding to avoid content shift when modal opens
+                document.body.style.top = `-${scrollY}px`;
+                document.body.style.position = 'fixed';
+                document.body.style.width = '100%';
+            });
+            
+            // Handle when modal is fully hidden
+            previewModalElement.addEventListener('hidden.bs.modal', function () {
+                // Restore the scroll position
+                const scrollY = document.body.style.top;
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.width = '';
+                window.scrollTo(0, parseInt(scrollY || '0') * -1);
+            });
+        }
+
+        // Confirm send button
+        if (confirmSendBtn) {
+            confirmSendBtn.addEventListener('click', function() {
+                if (form && !isSubmitting) {
+                    isSubmitting = true;
+                    sendBtn.disabled = true;
+                    sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Sending...';
+                    form.submit();
+                }
+            });
+        }
+
+        // Form submission handler
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (isSubmitting) {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                if (sendBtn) {
+                    sendBtn.disabled = true;
+                    sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Sending...';
+                }
+                
+                isSubmitting = true;
+            });
+        }
+    });
+</script>
+{% endblock %}
+
+<style>
+    .form-control:focus, .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+    .btn-primary {
+        background-color: #0d6efd;
+        border: none;
+        padding: 8px 20px;
+    }
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+    }
+    #messagePreview {
+        min-height: 100px;
+    }
+    .form-text {
+        font-size: 0.85rem;
+    }
+    .modal-content {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .modal-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+</style>
+{% endblock %}

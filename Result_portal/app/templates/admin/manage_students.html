@@ -1,0 +1,253 @@
+<!-- Admin manage students template placeholder -->
+
+{% extends 'base.html' %}
+{% block content %}
+  <h2>Manage Students</h2>
+
+  <form method="POST" action="{{ url_for('admin.manage_students') }}" class="row g-3 mb-4">
+    {{ form.hidden_tag() }}
+    {{ form.csrf_token }}
+    
+    <div class="col-md-2">
+      {{ form.index_number.label(class="form-label") }}
+      {{ form.index_number(class="form-control", value=form.index_number.data or '') }}
+    </div>
+    
+    <div class="col-md-2">
+      {{ form.full_name.label(class="form-label") }}
+      {{ form.full_name(class="form-control", value=form.full_name.data or '') }}
+    </div>
+    
+    <div class="col-md-2">
+      {{ form.program.label(class="form-label") }}
+      <select name="program" id="program" class="form-select">
+        {% for value, label in form.program.choices %}
+          <option value="{{ value }}" {% if form.program.data == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="col-md-2">
+      {{ form.level.label(class="form-label") }}
+      <select name="level" id="level" class="form-select">
+        {% for value, label in form.level.choices %}
+          <option value="{{ value }}" {% if form.level.data == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="col-md-2">
+      {{ form.status.label(class="form-label") }}
+      <select name="status" id="status" class="form-select">
+        {% for value, label in form.status.choices %}
+          <option value="{{ value }}" {% if form.status.data == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 align-self-end">
+      {{ form.submit(class="btn btn-primary w-100") }}
+    </div>
+  </form>
+
+  <!-- Action Buttons Section -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body p-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <!-- Primary Actions -->
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ url_for('admin.add_student') }}" class="btn btn-success" data-bs-toggle="tooltip" title="Add new student">
+            <i class="bi bi-person-plus me-1"></i> Add Student
+          </a>
+          <a href="{{ url_for('admin.archived_students') }}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="View archived students">
+            <i class="bi bi-archive me-1"></i> Archived Students
+          </a>
+        </div>
+
+        <!-- Data Management Buttons -->
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ url_for('admin.export_students') }}" class="btn btn-outline-primary" data-bs-toggle="tooltip" title="Export to CSV">
+            <i class="bi bi-download me-1"></i> Export
+          </a>
+          
+          <!-- Bulk Actions Dropdown -->
+          <div class="btn-group" role="group">
+            <button type="submit" 
+                  form="bulk-action-form" 
+                  name="action" 
+                  value="archive"
+                  class="btn btn-outline-warning" 
+                  onclick="return confirm('Are you sure you want to archive the selected students?');"
+                  data-bs-toggle="tooltip" 
+                  title="Archive selected students">
+            <i class="bi bi-archive"></i> Archive Selected
+          </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>
+    .table-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 15px;
+      position: relative;
+    }
+    .table {
+      margin-bottom: 0;
+      position: relative;
+    }
+    .table th {
+      white-space: nowrap;
+      position: relative;
+    }
+    .table td {
+      vertical-align: middle;
+      overflow: visible;
+      text-overflow: ellipsis;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 5px;
+      flex-wrap: nowrap;
+      position: relative;
+    }
+    .action-buttons .btn {
+      padding: 0.25rem 0.5rem;
+      z-index: 1;
+    }
+    .dropdown-menu {
+      min-width: 12rem;
+      position: absolute;
+      z-index: 1060 !important; /* Higher than table and other elements */
+      margin: 0;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .dropdown-item {
+      padding: 0.375rem 1rem;
+    }
+    .dropdown-divider {
+      margin: 0.3rem 0;
+    }
+  </style>
+
+  <div class="table-container">
+    <form id="bulk-action-form" action="{{ url_for('admin.bulk_students_action') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="table-responsive" style="overflow: visible;">
+        <table class="table table-bordered table-hover align-middle" style="position: relative;">
+          <colgroup>
+            <col style="width: 40px;">
+            <col style="min-width: 120px;">
+            <col style="min-width: 150px;">
+            <col style="min-width: 120px;">
+            <col style="width: 100px;">
+            <col style="width: 200px;">
+          </colgroup>
+    <thead class="table-light">
+      <tr>
+        <th><input type="checkbox" id="select-all"></th>
+        <th>Index Number</th>
+        <th>Full Name</th>
+        <th>Program</th>
+        <th>Level</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for student in students %}
+      <tr>
+        <td><input type="checkbox" name="student_ids" value="{{ student.id }}"></td>
+        <td>{{ student.index_number }}</td>
+        <td>{{ student.full_name }}</td>
+        <td>{{ student.program.name if student.program else '' }}</td>
+        <td>{{ student.level.name if student.level else '' }}</td>
+        <td>
+          <div class="action-buttons">
+            <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" 
+               class="btn btn-sm btn-outline-primary" 
+               data-bs-toggle="tooltip" 
+               title="Edit student">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{{ url_for('admin.reset_student_password', student_id=student.id) }}" 
+               class="btn btn-sm btn-outline-secondary"
+               data-bs-toggle="tooltip" 
+               title="Reset password">
+              <i class="bi bi-key"></i>
+            </a>
+            <a href="{{ url_for('admin.view_login_history', student_id=student.id) }}" 
+               class="btn btn-sm btn-outline-info"
+               data-bs-toggle="tooltip" 
+               title="View login history">
+              <i class="bi bi-clock-history"></i>
+            </a>
+            <div class="dropdown d-inline-block" style="position: static;">
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                      type="button" 
+                      data-bs-toggle="dropdown" 
+                      data-bs-boundary="viewport"
+                      aria-expanded="false"
+                      data-bs-toggle="tooltip"
+                      title="More actions">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(0px, 40px);" data-popper-placement="bottom-start">
+                <li>
+                  <a class="dropdown-item text-warning" 
+                     href="{{ url_for('admin.archive_student', student_id=student.id) }}" 
+                     onclick="return confirm('Archive this student?');">
+                    <i class="bi bi-archive me-2"></i>Archive
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <a class="dropdown-item text-danger" 
+                     href="{{ url_for('admin.archive_student', student_id=student.id) }}" 
+                     onclick="return confirm('Are you sure you want to archive this student?');">
+                    <i class="bi bi-archive me-2"></i>Archive
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-center">No students found.</td></tr>
+      {% endfor %}
+    </tbody>
+          </table>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+      
+      // Select all checkbox functionality
+      document.getElementById('select-all').onclick = function() {
+        var checkboxes = document.querySelectorAll('input[name="student_ids"]');
+        for (var checkbox of checkboxes) {
+          checkbox.checked = this.checked;
+        }
+      };
+      
+      // Add row hover effect
+      const rows = document.querySelectorAll('tbody tr');
+      rows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+          this.style.backgroundColor = 'rgba(0, 0, 0, 0.02)';
+        });
+        row.addEventListener('mouseleave', function() {
+          this.style.backgroundColor = '';
+        });
+      });
+    });
+  </script>
+{% endblock %}

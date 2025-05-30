@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="bi bi-pencil-square me-2"></i>Edit Program
+        </h2>
+        <a href="{{ url_for('admin.manage_programs', program_id=program.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Programs
+        </a>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle me-2 text-primary"></i>Program Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-4">
+                            <label for="edit_program_name" class="form-label fw-semibold">
+                                <i class="bi bi-card-heading me-1"></i>Program Name
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="edit_program_name" 
+                                   name="edit_program_name" 
+                                   value="{{ program.name }}" 
+                                   required>
+                            <div class="invalid-feedback">
+                                Please provide a program name.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="edit_program_description" class="form-label fw-semibold">
+                                <i class="bi bi-card-text me-1"></i>Description
+                                <span class="text-muted">(Optional)</span>
+                            </label>
+                            <textarea class="form-control" 
+                                     id="edit_program_description" 
+                                     name="edit_program_description" 
+                                     rows="3">{{ program.description or '' }}</textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-5 pt-3 border-top">
+                            <button type="reset" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Form
+                            </button>
+                            <div>
+                                <a href="{{ url_for('admin.manage_programs', program_id=program.id) }}" class="btn btn-outline-secondary me-2">
+                                    <i class="bi bi-x-lg me-1"></i>Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save me-1"></i>Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Client-side form validation
+    (function () {
+        'use strict'
+        
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        const forms = document.querySelectorAll('.needs-validation')
+        
+        // Loop over them and prevent submission
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}

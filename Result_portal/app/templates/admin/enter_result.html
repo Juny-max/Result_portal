@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="mb-4 text-center">{% if editing %}Edit Result{% else %}Enter Student Result{% endif %}</h2>
+<div class="card shadow-lg p-4" style="max-width: 600px; margin: auto;">
+<form method="POST" action="{{ url_for('admin.enter_result') }}">
+  {{ form.hidden_tag() }}
+
+  <!-- Program dropdown -->
+  <div class="mb-3">
+    {{ form.program.label(class="form-label") }}
+    {{ form.program(class="form-select", onchange="this.form.submit()") }}
+  </div>
+
+  <!-- Level -->
+  <div class="mb-3">
+    {{ form.level.label(class="form-label") }}
+    {{ form.level(class="form-select", onchange="this.form.submit()") }}
+  </div>
+
+  <!-- Student -->
+  <div class="mb-3">
+    {{ form.student.label(class="form-label") }}
+    {% if form.student.choices %}
+      {{ form.student(class="form-select") }}
+    {% else %}
+      <select class="form-select" disabled>
+        <option>No students found for this program and level.</option>
+      </select>
+    {% endif %}
+  </div>
+
+  <!-- Course -->
+  <div class="mb-3">
+    {{ form.course.label(class="form-label") }}
+    {% if form.course.choices %}
+      {{ form.course(class="form-select") }}
+    {% else %}
+      <select class="form-select" disabled>
+        <option>No courses found for this program.</option>
+      </select>
+    {% endif %}
+  </div>
+
+  <!-- Semester, Academic Year, Score, Remarks -->
+  <div class="mb-3">
+    {{ form.semester.label(class="form-label") }}
+    {{ form.semester(class="form-select") }}
+  </div>
+
+  <div class="mb-3">
+    {{ form.academic_year.label(class="form-label") }}
+    {{ form.academic_year(class="form-select") }}
+  </div>
+
+  <div class="mb-3">
+    {{ form.score.label(class="form-label") }}
+    {{ form.score(class="form-control") }}
+  </div>
+
+  <div class="mb-3">
+    {{ form.remarks.label(class="form-label") }}
+    {{ form.remarks(class="form-control") }}
+  </div>
+
+  <button type="submit" class="btn btn-success w-100 mt-3">Submit Result</button>
+</form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+  // When program changes, log it and update student dropdown
+  $('#program').change(function() {
+    console.log("Program changed to: " + $(this).val());
+    this.form.submit();
+  });
+  
+  // When level changes, log it and update student dropdown
+  $('#level').change(function() {
+    console.log("Level changed to: " + $(this).val());
+    this.form.submit();
+  });
+});
+</script>
+{% endblock %}
+# Add this to a route temporarily to debug
+@bp.route('/debug_db')
+@login_required
+def debug_db():
+    programs = Program.query.all()
+    levels = Level.query.all()
+    students = Student.query.all()
+    
+    return jsonify({
+        'programs': [{'id': p.id, 'name': p.name} for p in programs],
+        'levels': [{'id': l.id, 'name': l.name} for l in levels],
+        'student_count': len(students)
+    })

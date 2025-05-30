@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Login History for {{ student.full_name }}</h2>
+<table class="table table-bordered table-hover">
+  <thead class="table-light">
+    <tr>
+      <th>Date/Time</th>
+      <th>IP Address</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for record in history %}
+    <tr>
+      <td>{{ record.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+      <td>{{ record.ip_address }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="2" class="text-center">No login records found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<a href="{{ url_for('admin.manage_students') }}" class="btn btn-secondary">Back to Students</a>
+{% endblock %}

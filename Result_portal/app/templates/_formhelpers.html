@@ -1,0 +1,19 @@
+{# Form helper macros #}
+
+{% macro csrf_input() %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endmacro %}
+
+{% macro render_field(field) %}
+    <div class="form-group mb-3">
+        {{ field.label(class="form-label") }}
+        {{ field(class="form-control" + (" is-invalid" if field.errors else ""), **kwargs) }}
+        {% if field.errors %}
+            <div class="invalid-feedback">
+                {% for error in field.errors %}
+                    <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}

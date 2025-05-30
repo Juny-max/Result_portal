@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-primary">
+            <i class="bi bi-upload me-2"></i>Upload Results
+        </h1>
+        <a href="{{ url_for('admin.download_results_template') }}" class="btn btn-outline-primary">
+            <i class="bi bi-download me-2"></i>Download Template
+        </a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="bi {% if category == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-triangle-fill{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <!-- Upload Card -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-cloud-arrow-up text-primary me-2"></i>Upload Results File</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- File Upload -->
+                        <div class="mb-4">
+                            <label for="file" class="form-label fw-semibold">Results File</label>
+                            <div class="file-upload-wrapper">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-file-earmark-spreadsheet"></i></span>
+                                    {{ form.file(class="form-control", id="fileInput", required=true, accept=".csv,.xlsx,.xls") }}
+                                    <button class="btn btn-outline-secondary" type="button" id="browseBtn">
+                                        <i class="bi bi-folder2-open me-1"></i>Browse
+                                    </button>
+                                </div>
+                                <div class="form-text mt-1">
+                                    <i class="bi bi-info-circle me-1"></i>Accepted formats: .csv, .xlsx, .xls (Max 5MB)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- File Preview (will be shown after selection) -->
+                        <div id="filePreview" class="mb-4 d-none">
+                            <div class="d-flex align-items-center bg-light p-3 rounded">
+                                <i class="bi bi-file-earmark-spreadsheet text-primary fs-1 me-3"></i>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1" id="fileName"></h6>
+                                    <small class="text-muted" id="fileSize"></small>
+                                </div>
+                                <button type="button" class="btn-close" id="clearFile"></button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2" id="uploadBtn" disabled>
+                            <i class="bi bi-cloud-arrow-up me-2"></i>Upload Results
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Card -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-info-circle text-primary me-2"></i>Instructions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-lightbulb me-2"></i>Download and use the template to ensure proper formatting.
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">File Requirements:</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Format:</strong> CSV or Excel (.xlsx, .xls)
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Size:</strong> Maximum 5MB
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Required Columns:</strong>
+                            <ul class="mt-1">
+                                <li><code>index_number</code> - Student's unique ID</li>
+                                <li><code>course_code</code> - Course code (e.g., MATH101)</li>
+                                <li><code>score</code> - Numeric score (0-100)</li>
+                                <li><code>semester</code> - Semester (e.g., First, Second)</li>
+                                <li><code>academic_year</code> - Academic year (e.g., 2024/2025)</li>
+                                <li><code>remarks</code> - Optional comments</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    
+                    <div class="alert alert-warning mt-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Note:</strong> Duplicate entries will be skipped. Ensure all required fields are filled.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Styles -->
+<style>
+.file-upload-wrapper {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+#fileInput {
+    cursor: pointer;
+}
+
+#fileInput::-webkit-file-upload-button {
+    visibility: hidden;
+}
+
+#browseBtn {
+    z-index: 1;
+}
+
+/* Animation for file upload */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#filePreview {
+    animation: fadeIn 0.3s ease-out;
+}
+</style>
+
+<!-- JavaScript for file upload -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('fileInput');
+    const filePreview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const clearFile = document.getElementById('clearFile');
+    const browseBtn = document.getElementById('browseBtn');
+
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Handle file selection
+    fileInput.addEventListener('change', function(e) {
+        if (this.files.length > 0) {
+            const file = this.files[0];
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            filePreview.classList.remove('d-none');
+            uploadBtn.disabled = false;
+        }
+    });
+
+    // Handle clear file
+    clearFile.addEventListener('click', function(e) {
+        e.preventDefault();
+        fileInput.value = '';
+        filePreview.classList.add('d-none');
+        uploadBtn.disabled = true;
+    });
+
+    // Trigger file input click when browse button is clicked
+    browseBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    // Show file preview on drag and drop
+    const dropArea = document.querySelector('.file-upload-wrapper');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() {
+        dropArea.classList.add('bg-light', 'p-3', 'rounded');
+    }
+
+    function unhighlight() {
+        dropArea.classList.remove('bg-light', 'p-3', 'rounded');
+    }
+
+    dropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        
+        // Trigger the change event
+        const event = new Event('change');
+        fileInput.dispatchEvent(event);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,117 @@
+2025-05-29 19:37:14,246 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:37:18,430 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:42:52,542 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:45:16,214 INFO: Email Configuration: [in C:\wamp64\www\Result_portal\app\admin\routes.py:1125]
+2025-05-29 19:45:16,217 INFO: Server: smtp.gmail.com:465 [in C:\wamp64\www\Result_portal\app\admin\routes.py:1126]
+2025-05-29 19:45:16,227 INFO: Username: junyappteam@gmail.com [in C:\wamp64\www\Result_portal\app\admin\routes.py:1127]
+2025-05-29 19:45:16,267 ERROR: Error sending welcome email: 'MAIL_USE_SSL' [in C:\wamp64\www\Result_portal\app\admin\routes.py:1240]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 1128, in add_student
+    current_app.logger.info(f'Using SSL: {current_app.config["MAIL_USE_SSL"]}')
+                                          ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+KeyError: 'MAIL_USE_SSL'
+2025-05-29 19:46:50,706 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:46:52,913 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:47:26,931 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:47:28,454 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:48:29,334 INFO: Email Configuration: [in C:\wamp64\www\Result_portal\app\admin\routes.py:1125]
+2025-05-29 19:48:29,337 INFO: Server: smtp.gmail.com:465 [in C:\wamp64\www\Result_portal\app\admin\routes.py:1126]
+2025-05-29 19:48:29,341 INFO: Username: junyappteam@gmail.com [in C:\wamp64\www\Result_portal\app\admin\routes.py:1127]
+2025-05-29 19:48:29,353 INFO: Using SSL: True [in C:\wamp64\www\Result_portal\app\admin\routes.py:1128]
+2025-05-29 19:48:29,357 INFO: Using TLS: False [in C:\wamp64\www\Result_portal\app\admin\routes.py:1129]
+2025-05-29 19:48:29,389 ERROR: Error sending welcome email: name 'student_name' is not defined [in C:\wamp64\www\Result_portal\app\admin\routes.py:1262]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 1145, in add_student
+    <h2>Welcome {student_name}!</h2>
+                 ^^^^^^^^^^^^
+NameError: name 'student_name' is not defined
+2025-05-29 19:49:53,880 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:49:53,955 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:50:51,458 INFO: Email Configuration: [in C:\wamp64\www\Result_portal\app\admin\routes.py:1125]
+2025-05-29 19:50:51,461 INFO: Server: smtp.gmail.com:465 [in C:\wamp64\www\Result_portal\app\admin\routes.py:1126]
+2025-05-29 19:50:51,470 INFO: Username: junyappteam@gmail.com [in C:\wamp64\www\Result_portal\app\admin\routes.py:1127]
+2025-05-29 19:50:51,479 INFO: Using SSL: True [in C:\wamp64\www\Result_portal\app\admin\routes.py:1128]
+2025-05-29 19:50:51,490 INFO: Using TLS: False [in C:\wamp64\www\Result_portal\app\admin\routes.py:1129]
+2025-05-29 19:50:51,569 ERROR: Error rendering email template: cannot access local variable 'render_template' where it is not associated with a value [in C:\wamp64\www\Result_portal\app\admin\routes.py:1156]
+2025-05-29 19:50:51,578 ERROR: Error sending welcome email: name 'student_name' is not defined [in C:\wamp64\www\Result_portal\app\admin\routes.py:1256]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 1152, in add_student
+    template_content = render_template('emails/welcome_student.html', **template_vars)
+                       ^^^^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'render_template' where it is not associated with a value
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 1161, in add_student
+    <h2>Welcome {student_name}!</h2>
+                 ^^^^^^^^^^^^
+NameError: name 'student_name' is not defined
+2025-05-29 19:51:50,844 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:51:50,956 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 19:52:48,867 ERROR: Error adding student: cannot access local variable 'render_template' where it is not associated with a value [in C:\wamp64\www\Result_portal\app\admin\routes.py:1271]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 1060, in add_student
+    return render_template('admin/add_edit_student.html', form=form, editing=False)
+           ^^^^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'render_template' where it is not associated with a value
+2025-05-29 19:53:17,639 INFO: Email Configuration: [in C:\wamp64\www\Result_portal\app\admin\routes.py:1125]
+2025-05-29 19:53:17,643 INFO: Server: smtp.gmail.com:465 [in C:\wamp64\www\Result_portal\app\admin\routes.py:1126]
+2025-05-29 19:53:17,650 INFO: Username: junyappteam@gmail.com [in C:\wamp64\www\Result_portal\app\admin\routes.py:1127]
+2025-05-29 19:53:17,654 INFO: Using SSL: True [in C:\wamp64\www\Result_portal\app\admin\routes.py:1128]
+2025-05-29 19:53:17,658 INFO: Using TLS: False [in C:\wamp64\www\Result_portal\app\admin\routes.py:1129]
+2025-05-29 19:53:17,712 INFO: Successfully rendered email template from file [in C:\wamp64\www\Result_portal\app\admin\routes.py:1156]
+2025-05-29 19:53:17,719 INFO: Preparing to send welcome email to marylyngrip@gmail.com [in C:\wamp64\www\Result_portal\app\admin\routes.py:1203]
+2025-05-29 19:53:17,722 INFO: Email Configuration: [in C:\wamp64\www\Result_portal\app\admin\routes.py:1206]
+2025-05-29 19:53:17,726 INFO: Server: smtp.gmail.com:465 [in C:\wamp64\www\Result_portal\app\admin\routes.py:1207]
+2025-05-29 19:53:17,735 INFO: Username: junyappteam@gmail.com [in C:\wamp64\www\Result_portal\app\admin\routes.py:1208]
+2025-05-29 19:53:17,738 INFO: Use SSL: True [in C:\wamp64\www\Result_portal\app\admin\routes.py:1209]
+2025-05-29 19:53:17,741 INFO: Use TLS: False [in C:\wamp64\www\Result_portal\app\admin\routes.py:1210]
+2025-05-29 19:53:23,087 INFO: Successfully sent welcome email to marylyngrip@gmail.com [in C:\wamp64\www\Result_portal\app\admin\routes.py:1219]
+2025-05-29 20:14:36,329 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 20:14:36,331 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 20:31:56,141 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 20:31:56,143 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 20:32:56,874 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 20:32:59,120 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 20:33:16,317 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 20:33:16,707 INFO: Student Portal startup [in C:\wamp64\www\Result_portal\app\__init__.py:44]
+2025-05-29 20:45:21,646 INFO: Processing 2 records from results_template.csv [in C:\wamp64\www\Result_portal\app\admin\routes.py:356]
+2025-05-29 20:45:21,822 ERROR: Error processing row 1: type object 'Result' has no attribute 'level' [in C:\wamp64\www\Result_portal\app\admin\routes.py:462]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 430, in upload_results
+    Result.level == level
+    ^^^^^^^^^^^^
+AttributeError: type object 'Result' has no attribute 'level'
+2025-05-29 20:45:21,851 ERROR: Error processing row 2: type object 'Result' has no attribute 'level' [in C:\wamp64\www\Result_portal\app\admin\routes.py:462]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 430, in upload_results
+    Result.level == level
+    ^^^^^^^^^^^^
+AttributeError: type object 'Result' has no attribute 'level'
+2025-05-29 20:45:36,088 INFO: Processing 2 records from results_template.csv [in C:\wamp64\www\Result_portal\app\admin\routes.py:356]
+2025-05-29 20:45:36,127 ERROR: Error processing row 1: type object 'Result' has no attribute 'level' [in C:\wamp64\www\Result_portal\app\admin\routes.py:462]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 430, in upload_results
+    Result.level == level
+    ^^^^^^^^^^^^
+AttributeError: type object 'Result' has no attribute 'level'
+2025-05-29 20:45:36,163 ERROR: Error processing row 2: type object 'Result' has no attribute 'level' [in C:\wamp64\www\Result_portal\app\admin\routes.py:462]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 430, in upload_results
+    Result.level == level
+    ^^^^^^^^^^^^
+AttributeError: type object 'Result' has no attribute 'level'
+2025-05-29 20:48:10,381 INFO: Processing 2 records from results_template.csv [in C:\wamp64\www\Result_portal\app\admin\routes.py:356]
+2025-05-29 20:48:10,421 ERROR: Error processing row 1: type object 'Result' has no attribute 'level' [in C:\wamp64\www\Result_portal\app\admin\routes.py:462]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 430, in upload_results
+    Result.level == level
+    ^^^^^^^^^^^^
+AttributeError: type object 'Result' has no attribute 'level'
+2025-05-29 20:48:10,443 ERROR: Error processing row 2: type object 'Result' has no attribute 'level' [in C:\wamp64\www\Result_portal\app\admin\routes.py:462]
+Traceback (most recent call last):
+  File "C:\wamp64\www\Result_portal\app\admin\routes.py", line 430, in upload_results
+    Result.level == level
+    ^^^^^^^^^^^^
+AttributeError: type object 'Result' has no attribute 'level'

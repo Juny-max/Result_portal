@@ -1,0 +1,1252 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+:root {
+  --primary: #4361ee;
+  --primary-light: #eef2ff;
+  --secondary: #3f37c9;
+  --success: #10b981;
+  --info: #3b82f6;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --light: #f8fafc;
+  --dark: #1e293b;
+  --gray-100: #f8f9fa;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-800: #343a40;
+  --gray-900: #212529;
+  --border-radius: 0.5rem;
+  --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+/* Base styles */
+body {
+  background-color: #f5f7fb;
+  color: var(--gray-800);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Card styles */
+.card {
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  background-color: white;
+  border-bottom: 1px solid var(--gray-200);
+  font-weight: 600;
+}
+
+/* Stats cards */
+.stat-card {
+  border-left: 4px solid;
+  transition: all 0.3s ease;
+}
+
+.stat-card .card-body {
+  padding: 1.25rem;
+}
+
+.stat-card .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+.stat-card .stat-label {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.stat-card {
+  position: relative;
+  transition: all 0.3s ease;
+  height: 100%;
+  overflow: hidden;
+}
+
+.stat-card .stat-icon {
+  font-size: 1.5rem;
+  opacity: 1;
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s ease;
+  color: white;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.stat-card .card-body {
+  padding: 1rem !important;
+  padding-right: 3.5rem !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 90px;
+}
+
+.stat-card .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0.15rem 0;
+}
+
+.stat-card .stat-label {
+  color: var(--gray-600);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.stat-card .text-success,
+.stat-card .text-muted {
+  font-size: 0.75rem;
+  display: block;
+  margin-top: 0.25rem;
+  line-height: 1.3;
+}
+
+/* Ensure text doesn't wrap under icon */
+.stat-card .stat-content {
+  padding-right: 0.5rem;
+}
+
+.stat-card:hover .stat-icon {
+  transform: translateY(-50%) scale(1.05);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* Adjust icon colors for better visibility */
+.stat-card.border-left-primary .stat-icon {
+  background-color: rgba(67, 97, 238, 0.2);
+  color: #4361ee;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card.border-left-success .stat-icon {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card.border-left-warning .stat-icon {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card.border-left-info .stat-icon {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Table styles */
+.table {
+  margin-bottom: 0;
+}
+
+.table thead th {
+  border-top: none;
+  border-bottom-width: 1px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--gray-600);
+}
+
+.table > :not(:last-child) > :last-child > * {
+  border-bottom-color: var(--gray-200);
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+  .stat-card {
+    margin-bottom: 1rem;
+  }
+  
+  .table-responsive {
+    border: 0;
+  }
+}
+
+/* Custom utilities */
+.bg-soft-primary { background-color: rgba(67, 97, 238, 0.1) !important; }
+.bg-soft-success { background-color: rgba(16, 185, 129, 0.1) !important; }
+.bg-soft-danger { background-color: rgba(239, 68, 68, 0.1) !important; }
+.bg-soft-warning { background-color: rgba(245, 158, 11, 0.1) !important; }
+
+.text-primary { color: var(--primary) !important; }
+.text-success { color: var(--success) !important; }
+.text-danger { color: var(--danger) !important; }
+.text-warning { color: var(--warning) !important; }
+:root {
+  --sidebar-width: 250px;
+  --primary: #4361ee;
+  --primary-light: #eef2ff;
+  --secondary: #3f37c9;
+  --success: #10b981;
+  --info: #3b82f6;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --light: #f8fafc;
+  --dark: #1e293b;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+  --border-radius: 0.5rem;
+  --box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --transition: all 0.2s ease-in-out;
+}
+
+/* Base styles */
+body {
+  background-color: var(--gray-100);
+  color: var(--gray-800);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Layout */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-layout {
+  display: flex;
+  flex: 1;
+  margin-top: 60px;
+}
+
+.admin-main {
+  flex: 1;
+  padding: 1.5rem;
+  margin-left: 0;
+  transition: all 0.3s;
+}
+
+@media (min-width: 768px) {
+  .admin-main {
+    margin-left: 250px;
+  }
+}
+
+/* Sidebar */
+.admin-sidebar {
+  width: var(--sidebar-width);
+  background: white;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  position: fixed;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  z-index: 1000;
+  transition: var(--transition);
+  overflow-y: auto;
+  padding: 1.5rem 0;
+}
+
+.sidebar-header {
+  padding: 0 1.5rem 1.5rem;
+  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: 1rem;
+}
+
+.sidebar-brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sidebar-brand i {
+  font-size: 1.5rem;
+  color: var(--primary);
+}
+
+.nav-menu {
+  padding: 0 1rem;
+}
+
+.menu-title {
+  color: var(--gray-500);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1rem 1rem 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.nav-item {
+  margin-bottom: 0.25rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: var(--gray-700);
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.nav-link i {
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+  color: var(--gray-500);
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.nav-link.active {
+  font-weight: 600;
+}
+
+.dropdown-menu {
+  border: none;
+  box-shadow: var(--box-shadow);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 0;
+  margin: 0.25rem 0 0.5rem 1rem;
+  background: white;
+  border: 1px solid var(--gray-200);
+}
+
+.dropdown-item {
+  padding: 0.5rem 1.5rem;
+  font-size: 0.9rem;
+  color: var(--gray-700);
+  transition: var(--transition);
+}
+
+.dropdown-item:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  padding-left: 1.75rem;
+}
+
+/* Main Content */
+.admin-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 2rem;
+  transition: var(--transition);
+  min-height: calc(100vh - 60px);
+  background-color: var(--gray-100);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--box-shadow);
+  transition: var(--transition);
+  border-left: 4px solid var(--primary);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+  background: var(--primary);
+}
+
+.stat-icon.students { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+.stat-icon.archived { background: linear-gradient(135deg, #10b981, #34d399); }
+.stat-icon.programs { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+.stat-icon.courses { background: linear-gradient(135deg, #ec4899, #f472b6); }
+
+.stat-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin: 0.5rem 0 0.25rem;
+  line-height: 1.2;
+}
+
+.stat-label {
+  color: var(--gray-500);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-change {
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+  color: var(--gray-500);
+}
+
+.stat-change.increase {
+  color: #10b981;
+}
+
+.stat-change.decrease {
+  color: #ef4444;
+}
+
+/* Recent Activity */
+.recent-activity {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--box-shadow);
+  margin-top: 2rem;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 0 0 1.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-title i {
+  color: var(--primary);
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--gray-600);
+  border-top: none;
+  border-bottom: 1px solid var(--gray-200);
+  padding: 0.75rem 1.5rem;
+}
+
+.table td {
+  padding: 1rem 1.5rem;
+  vertical-align: middle;
+  border-color: var(--gray-100);
+}
+
+.table-hover > tbody > tr:hover {
+  --bs-table-accent-bg: rgba(67, 97, 238, 0.05);
+}
+
+.badge {
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+  font-size: 0.75em;
+  letter-spacing: 0.05em;
+}
+
+/* Responsive Styles */
+@media (max-width: 991.98px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+    z-index: 1040;
+  }
+  
+  .admin-sidebar.show {
+    transform: translateX(0);
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .admin-main {
+    margin-left: 0 !important;
+    padding: 1rem !important;
+  }
+}
+
+/* Sidebar Toggle */
+.sidebar-toggle {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1050;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: var(--transition);
+}
+
+.sidebar-toggle:hover {
+  background: var(--gray-100);
+  transform: translateY(-1px);
+}
+
+.sidebar-toggle i {
+  font-size: 1.25rem;
+  color: var(--gray-700);
+}
+
+/* Overlay for mobile */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1039;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(2px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.stat-card {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+<script>
+// Toggle sidebar on mobile
+function toggleSidebar() {
+  const sidebar = document.querySelector('.admin-sidebar');
+  sidebar.classList.toggle('show');
+  
+  // Toggle overlay
+  const overlay = document.querySelector('.sidebar-overlay');
+  if (sidebar.classList.contains('show')) {
+    overlay.style.display = 'block';
+    setTimeout(() => overlay.style.opacity = '1', 10);
+  } else {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.style.display = 'none', 300);
+  }
+}
+
+// Close sidebar when clicking outside on mobile
+function setupSidebar() {
+  const sidebar = document.querySelector('.admin-sidebar');
+  const toggleBtn = document.querySelector('.sidebar-toggle');
+  const overlay = document.querySelector('.sidebar-overlay');
+  
+  // Create overlay if it doesn't exist
+  if (!overlay) {
+    const newOverlay = document.createElement('div');
+    newOverlay.className = 'sidebar-overlay';
+    newOverlay.style.display = 'none';
+    newOverlay.style.opacity = '0';
+    newOverlay.addEventListener('click', toggleSidebar);
+    document.body.appendChild(newOverlay);
+  }
+  
+  // Close sidebar when clicking on nav links (for mobile)
+  document.querySelectorAll('.admin-sidebar .nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth < 992) {
+        toggleSidebar();
+      }
+    });
+  });
+  
+  // Handle window resize
+  function handleResize() {
+    if (window.innerWidth >= 992) {
+      const overlay = document.querySelector('.sidebar-overlay');
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
+      if (sidebar) {
+        sidebar.classList.remove('show');
+      }
+    }
+  }
+  
+  window.addEventListener('resize', handleResize);
+  handleResize(); // Initial check
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  setupSidebar();
+  
+  // Initialize tooltips
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+  
+  // Add active class to current nav item
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.nav-link').forEach(link => {
+    if (link.getAttribute('href') === currentPath) {
+      link.classList.add('active');
+      // Also make sure parent dropdown is expanded
+      const parentDropdown = link.closest('.dropdown');
+      if (parentDropdown) {
+        const toggle = parentDropdown.querySelector('.dropdown-toggle');
+        if (toggle) {
+          toggle.classList.add('active');
+          toggle.setAttribute('aria-expanded', 'true');
+          const menu = parentDropdown.querySelector('.dropdown-menu');
+          if (menu) menu.classList.add('show');
+        }
+      }
+    }
+  });
+});
+</script>
+
+<!-- Overlay for mobile sidebar -->
+<style>
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1039;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(2px);
+}
+
+@media (max-width: 991.98px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 1040;
+  }
+  
+  .admin-sidebar.show {
+    transform: translateX(0);
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
+  }
+  
+  .admin-main {
+    margin-left: 0 !important;
+    padding: 1rem !important;
+  }
+}
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; }
+.shadow { box-shadow: var(--box-shadow) !important; }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; }
+.transition { transition: var(--transition) !important; }
+</style>
+
+  <div class="admin-layout">
+  <!-- Sidebar - Hidden on mobile -->
+  <nav class="admin-sidebar d-none d-md-block">
+    <div class="sidebar-header">
+      <a href="{{ url_for('admin.dashboard') }}" class="sidebar-brand">
+        <i class="bi bi-speedometer2"></i>
+        <span>Admin Panel</span>
+      </a>
+    </div>
+    
+    <div class="nav-menu">
+      <div class="nav-item">
+        <a href="{{ url_for('admin.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin.dashboard' }}">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+      </div>
+      
+      <div class="menu-title">Communication</div>
+      
+      <div class="nav-item">
+        <a href="{{ url_for('admin.send_notification') }}" class="nav-link {{ 'active' if request.endpoint == 'admin.send_notification' }}">
+          <i class="bi bi-bell"></i>
+          <span>Send Notification</span>
+        </a>
+      </div>
+      
+      <div class="nav-item">
+        <a href="{{ url_for('admin.broadcast_message') }}" class="nav-link {{ 'active' if request.endpoint == 'admin.broadcast_message' }}">
+          <i class="bi bi-megaphone"></i>
+          <span>Broadcast Message</span>
+        </a>
+      </div>
+      
+      <div class="menu-title">Results</div>
+      
+      <div class="nav-item">
+        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-file-text"></i>
+          <span>Results</span>
+          <i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="{{ url_for('admin.enter_result') }}">
+            <i class="bi bi-plus-circle me-2"></i>Enter Result
+          </a></li>
+          <li><a class="dropdown-item" href="{{ url_for('admin.upload_results') }}">
+            <i class="bi bi-upload me-2"></i>Upload Results
+          </a></li>
+          <li><a class="dropdown-item" href="{{ url_for('admin.view_results') }}">
+            <i class="bi bi-eye me-2"></i>View Results
+          </a></li>
+        </ul>
+      </div>
+      
+      <div class="menu-title">Management</div>
+      
+      <div class="nav-item">
+        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-people"></i>
+          <span>Students</span>
+          <i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="{{ url_for('admin.manage_students') }}">
+            <i class="bi bi-people me-2"></i>Manage Students
+          </a></li>
+          <li><a class="dropdown-item" href="{{ url_for('admin.archived_students') }}">
+            <i class="bi bi-archive me-2"></i>Archived Students
+          </a></li>
+        </ul>
+      </div>
+      
+      <div class="nav-item">
+        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-book"></i>
+          <span>Courses</span>
+          <i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="{{ url_for('admin.manage_courses') }}">
+            <i class="bi bi-gear me-2"></i>Manage Courses
+          </a></li>
+          <li><a class="dropdown-item" href="{{ url_for('admin.add_course') }}">
+            <i class="bi bi-plus-circle me-2"></i>Add Course
+          </a></li>
+        </ul>
+      </div>
+      
+      <div class="nav-item">
+        <a href="{{ url_for('admin.manage_programs') }}" class="nav-link {{ 'active' if request.endpoint == 'admin.manage_programs' }}">
+          <i class="bi bi-building"></i>
+          <span>Programs</span>
+        </a>
+      </div>
+      
+      <div class="menu-title">System</div>
+      
+      <div class="nav-item">
+        <a href="{{ url_for('admin.audit_logs') }}" class="nav-link {{ 'active' if request.endpoint == 'admin.audit_logs' }}">
+          <i class="bi bi-clock-history"></i>
+          <span>Audit Logs</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="admin-main">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="h3 mb-1">Dashboard</h1>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item active" aria-current="page">Overview</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="d-flex align-items-center">
+        <div class="me-3 text-end d-none d-md-block">
+          <div class="text-muted small">Last updated</div>
+          <div id="lastUpdated" class="fw-medium">{{ now.strftime('%B %d, %Y %H:%M:%S') }}</div>
+        </div>
+        <button id="refreshBtn" class="btn btn-light border rounded-circle p-2" title="Refresh Dashboard">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+      <!-- Active Students -->
+      <div class="col-md-6 col-lg-3">
+        <div class="card stat-card border-left-primary">
+          <div class="card-body position-relative">
+            <div class="stat-label text-uppercase text-muted small fw-bold">Active Students</div>
+            <div class="stat-value text-primary">{{ student_count|default('0', true) }}</div>
+            <div class="text-success small">
+              <i class="bi bi-arrow-up"></i> 12% from last month
+            </div>
+            <i class="bi bi-people stat-icon text-primary"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Archived Students -->
+      <div class="col-md-6 col-lg-3">
+        <div class="card stat-card border-left-success">
+          <div class="card-body position-relative">
+            <div class="stat-label text-uppercase text-muted small fw-bold">Archived Students</div>
+            <div class="stat-value text-success">{{ archived_count|default('0', true) }}</div>
+            <div class="text-muted small">
+              No change
+            </div>
+            <i class="bi bi-archive stat-icon text-success"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Programs -->
+      <div class="col-md-6 col-lg-3">
+        <div class="card stat-card border-left-warning">
+          <div class="card-body position-relative">
+            <div class="stat-label text-uppercase text-muted small fw-bold">Programs</div>
+            <div class="stat-value text-warning">{{ program_count|default('0', true) }}</div>
+            <div class="text-success small">
+              <i class="bi bi-plus"></i> 1 new this month
+            </div>
+            <i class="bi bi-mortarboard stat-icon text-warning"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Courses -->
+      <div class="col-md-6 col-lg-3">
+        <div class="card stat-card border-left-info">
+          <div class="card-body position-relative">
+            <div class="stat-label text-uppercase text-muted small fw-bold">Courses</div>
+            <div class="stat-value text-info">{{ course_count|default('0', true) }}</div>
+            <div class="text-success small">
+              <i class="bi bi-arrow-up"></i> 5% from last month
+            </div>
+            <i class="bi bi-book stat-icon text-info"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    
+    <div class="row">
+      <!-- Left Column -->
+      <div class="col-12 col-lg-8">
+        <div class="row">
+          <!-- Programs & Student Count -->
+          <div class="col-12 col-lg-12">
+            <div class="card mb-4">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Programs & Student Count</h5>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-light border-0 rounded-circle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{{ url_for('admin.export_all_programs') }}">Export All to Excel</a></li>
+                <li><a class="dropdown-item" href="#" onclick="window.print(); return false;">Print</a></li>
+              </ul>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                  <tr>
+                    <th class="ps-4">Program</th>
+                    <th class="text-end pe-4">Students</th>
+                    <th class="text-end pe-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if program_counts and program_counts|length > 0 %}
+                    {% for program, count in program_counts %}
+                    <tr>
+                      <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                          <div class="bg-soft-primary rounded p-2 me-3">
+                            <i class="bi bi-mortarboard text-primary"></i>
+                          </div>
+                          <div>
+                            <h6 class="mb-0">{{ program.name }}</h6>
+                            <small class="text-muted">{{ program.code }}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="text-end pe-4 fw-bold">{{ "{:,}".format(count) }}</td>
+                      <td class="text-end pe-4">
+                        <a href="{{ url_for('admin.view_students', program_id=program.id) }}" class="btn btn-sm btn-light border" title="View Students">
+                          <i class="bi bi-eye text-primary"></i>
+                        </a>
+                        <a href="{{ url_for('admin.export_program_students', program_id=program.id) }}" class="btn btn-sm btn-light border" title="Export Students">
+                          <i class="bi bi-download text-secondary"></i>
+                        </a>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="3" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox me-2"></i>No programs found
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-footer bg-white border-top-0 pt-0">
+            <a href="{{ url_for('admin.manage_programs') }}" class="btn btn-link text-decoration-none">
+              View all programs <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Column -->
+      <div class="col-12 col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Quick Actions</h5>
+            <div class="d-grid gap-2">
+              <a href="{{ url_for('admin.add_student') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Add New Student
+              </a>
+              <a href="{{ url_for('admin.upload_results') }}" class="btn btn-outline-primary">
+                <i class="fas fa-upload me-2"></i>Upload Results
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row mt-4">
+      <div class="col-12">
+        <!-- Recent Results -->
+        <div class="card">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent Results</h5>
+            <div class="d-flex align-items-center">
+              <div class="input-group input-group-sm me-2" style="max-width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                <input type="text" id="resultsSearch" class="form-control border-start-0" placeholder="Search by name, program, course...">
+              </div>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-light border-0 rounded-circle" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item" href="#">Export to Excel</a></li>
+                  <li><a class="dropdown-item" href="#">Print</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="#">Refresh</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                  <tr>
+                    <th class="ps-4">Student</th>
+                    <th>Program</th>
+                    <th>Course</th>
+                    <th class="text-center">Score</th>
+                    <th class="text-center">Grade</th>
+                    <th class="text-end pe-4">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if recent_results %}
+                    {% for result in recent_results %}
+                      <tr>
+                        <td class="ps-4">
+                          <div class="d-flex align-items-center">
+                            <div class="avatar-sm bg-soft-primary rounded-circle d-flex align-items-center justify-content-center me-3">
+                              <span class="text-primary fw-medium">{{ result.student.full_name|first|upper }}</span>
+                            </div>
+                            <div>
+                              <h6 class="mb-0">{{ result.student.full_name }}</h6>
+                              <small class="text-muted">{{ result.student.registration_number }}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="badge bg-soft-primary text-primary">{{ result.student.program.code }}</span>
+                        </td>
+                        <td class="text-truncate" style="max-width: 200px;" title="{{ result.course.title }}">
+                          {{ result.course.title }}
+                        </td>
+                        <td class="text-center fw-bold">{{ result.score|int }}</td>
+                        <td class="text-center">
+                          {% set grade_class = 'success' if result.grade in ['A', 'B+', 'B', 'C+'] 
+                                            else 'warning' if result.grade in ['C', 'D+', 'D'] 
+                                            else 'danger' %}
+                          <span class="badge bg-soft-{{ grade_class }} text-{{ grade_class }}">
+                            {{ result.grade }}
+                          </span>
+                        </td>
+                        <td class="text-end pe-4 text-muted">
+                          <small>{{ result.uploaded_at.strftime('%b %d, %Y') }}</small>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="6" class="text-center py-5">
+                        <div class="mb-3">
+                          <i class="bi bi-inbox display-4 text-muted"></i>
+                        </div>
+                        <h5 class="text-muted">No recent results found</h5>
+                        <p class="text-muted mb-0">Upload results to see them listed here</p>
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-footer bg-white border-top-0 pt-0">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="text-muted small">
+                Showing <span class="fw-medium">{{ recent_results|length if recent_results else 0 }}</span> results
+              </div>
+              <a href="{{ url_for('admin.view_results') }}" class="btn btn-link text-decoration-none">
+                View all results <i class="bi bi-arrow-right ms-1"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div></div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Function to update the last updated time
+function updateLastUpdatedTime() {
+  const now = new Date();
+  const options = { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+  document.getElementById('lastUpdated').textContent = now.toLocaleDateString('en-US', options);
+}
+
+// Function to handle search functionality
+function setupSearch() {
+  // Find the Recent Results card by its heading
+  const recentResultsCard = Array.from(document.querySelectorAll('.card')).find(card => {
+    const heading = card.querySelector('h5');
+    return heading && heading.textContent.trim() === 'Recent Results';
+  });
+  
+  if (!recentResultsCard) return;
+  
+  // Get the search input and table within the found card
+  const searchInput = recentResultsCard.querySelector('#resultsSearch');
+  const table = recentResultsCard.querySelector('table');
+  
+  if (searchInput && table) {
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    
+    const rows = Array.from(tbody.getElementsByTagName('tr'));
+    
+    // Create and append no results row
+    const noResultsRow = document.createElement('tr');
+    noResultsRow.innerHTML = [
+      '<td colspan="6" class="text-center py-4">',
+      '  <i class="bi bi-search display-6 text-muted mb-2"></i>',
+      '  <h5 class="text-muted">No results found</h5>',
+      '  <p class="text-muted mb-0">Try different search terms</p>',
+      '</td>'
+    ].join('');
+    
+    noResultsRow.style.display = 'none';
+    tbody.appendChild(noResultsRow);
+    
+    function performSearch() {
+      const searchTerm = searchInput.value.trim().toLowerCase();
+      let hasVisibleRows = false;
+      
+      rows.forEach(row => {
+        if (row === noResultsRow) return;
+        
+        const cells = Array.from(row.getElementsByTagName('td'));
+        const rowText = cells.map(cell => cell.textContent.toLowerCase()).join(' ');
+        
+        if (searchTerm === '' || rowText.includes(searchTerm)) {
+          row.style.display = '';
+          hasVisibleRows = true;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      // Show/hide no results message
+      noResultsRow.style.display = (searchTerm && !hasVisibleRows) ? '' : 'none';
+    }
+    
+    // Search on input (as you type) or when Enter is pressed
+    searchInput.addEventListener('input', performSearch);
+    searchInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
+      }
+    });
+    
+    // Initial search to set up the table
+    performSearch();
+  }
+}
+
+// Initialize everything when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Setup refresh button
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function() {
+      const icon = this.querySelector('i');
+      
+      // Add rotation animation
+      icon.style.transition = 'transform 0.5s ease';
+      icon.style.transform = 'rotate(360deg)';
+      
+      // After animation completes, reload the page
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
+      // Reset rotation for next time
+      setTimeout(() => {
+        icon.style.transform = 'rotate(0deg)';
+      }, 1000);
+    });
+  }
+  
+  // Setup search functionality
+  setupSearch();
+  
+  // Update last updated time
+  if (document.getElementById('lastUpdated')) {
+    updateLastUpdatedTime();
+  }
+});
+</script>
+{% endblock %}

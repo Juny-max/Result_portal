@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ program.name }} Students{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ program.name }} Students</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ program.name }} <small class="text-muted">({{ program.code }})</small></h1>
+            <p class="text-muted mb-0">Total Students: {{ students|length }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin.export_program_students', program_id=program.id) }}" class="btn btn-outline-primary">
+                <i class="bi bi-download me-2"></i>Export to Excel
+            </a>
+            <a href="{{ url_for('admin.manage_students') }}" class="btn btn-outline-secondary ms-2">
+                <i class="bi bi-arrow-left me-2"></i>Back to Students
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if students %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Index Number</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Level</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>{{ student.index_number }}</td>
+                                <td>{{ student.full_name }}</td>
+                                <td>{{ student.user.email if student.user else 'N/A' }}</td>
+                                <td>Level {{ student.level.level_number if student.level else 'N/A' }}</td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" class="btn btn-sm btn-light border" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.view_login_history', student_id=student.id) }}" class="btn btn-sm btn-light border" title="Login History">
+                                        <i class="bi bi-clock-history"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-people display-4 text-muted"></i>
+                    </div>
+                    <h5>No students found in this program</h5>
+                    <p class="text-muted">There are currently no active students enrolled in this program.</p>
+                    <a href="{{ url_for('admin.add_student') }}" class="btn btn-primary mt-2">
+                        <i class="bi bi-plus-lg me-2"></i>Add New Student
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Add any additional JavaScript here if needed
+</script>
+{% endblock %}

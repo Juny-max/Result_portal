@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <script>
+    // Make CSRF token available globally
+    window.csrfToken = "{{ csrf_token() }}";
+  </script>
+  <title>{% block title %}Student Result Portal{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    html, body {
+      height: 100%;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    .main-content {
+      flex: 1 0 auto;
+      min-height: calc(100vh - 120px);
+    }
+    .footer {
+      flex-shrink: 0;
+      background-color: #f8f9fa;
+      padding: 1rem 0;
+    }
+  </style>
+  {% block styles %}{% endblock %}
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+      <div class="container">
+          <a class="navbar-brand" href="{{ url_for('index') }}">Result Portal</a>
+
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav">
+              <ul class="navbar-nav me-auto">
+                  {% if current_user.is_authenticated %}
+                      <li class="nav-item d-flex align-items-center">
+                          <a class="nav-link px-2 fw-semibold" href="{{ url_for('admin.dashboard' if current_user.is_admin() else 'student.dashboard') }}" style="background-color: transparent !important;">
+                              <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                          </a>
+                      </li>
+                  {% else %}
+                      <li class="nav-item d-flex align-items-center">
+                          <a class="nav-link px-2 fw-semibold" href="{{ url_for('index') }}">
+                              <i class="bi bi-house-door-fill me-1"></i> Home
+                          </a>
+                      </li>
+                  {% endif %}
+              </ul>
+              <ul class="navbar-nav">
+                  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="position: fixed; top: 20px; right: 20px; z-index: 2000; min-width: 320px; max-width: 400px;">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show d-flex align-items-center shadow" role="alert" style="font-size: 1.05em;">
+            {% if category == 'success' %}
+              <span class="me-2"><i class="bi bi-check-circle-fill text-success"></i></span>
+            {% elif category == 'danger' %}
+              <span class="me-2"><i class="bi bi-x-circle-fill text-danger"></i></span>
+            {% elif category == 'warning' %}
+              <span class="me-2"><i class="bi bi-exclamation-triangle-fill text-warning"></i></span>
+            {% elif category == 'info' %}
+              <span class="me-2"><i class="bi bi-info-circle-fill text-info"></i></span>
+            {% else %}
+              <span class="me-2"><i class="bi bi-bell-fill text-secondary"></i></span>
+            {% endif %}
+            <div>
+              {{ message }}
+            </div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+              </ul>
+              <ul class="navbar-nav ms-auto align-items-center flex-row gap-3">
+                  {% if current_user.is_authenticated %}
+                      <li class="nav-item d-flex align-items-center">
+                          <span class="navbar-text px-2 fw-semibold">
+                              <i class="bi bi-person-circle me-1"></i> {{ current_user.username }}
+                          </span>
+                      </li>
+                      <li class="nav-item d-flex align-items-center">
+                          <a class="nav-link px-2 fw-semibold" href="{{ url_for('auth.logout') }}">
+                              <i class="bi bi-box-arrow-right me-1"></i> Logout
+                          </a>
+                      </li>
+                  {% else %}
+                      <li class="nav-item d-flex align-items-center">
+                          <a class="nav-link px-2 fw-semibold" href="{{ url_for('auth.login') }}">
+                              <i class="bi bi-box-arrow-in-right me-1"></i> Login
+                          </a>
+                      </li>
+                  {% endif %}
+              </ul>
+          </div>
+      </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="container" style="margin-top: 80px !important;">
+        {% block content %}{% endblock %}
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+  <footer class="footer py-3 bg-light">
+      <div class="container text-center">
+          <span class="text-muted">Student Result Portal &copy; {{ now.year if now else '2025' }}</span>
+      </div>
+  </footer>
+  {% block scripts %}{% endblock %}
+  <!-- Confirmation Modal for Actions -->
+  <div class="modal fade" id="confirmActionModal" tabindex="-1" aria-labelledby="confirmActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmActionModalLabel">
+            <i class="bi me-2" id="confirmActionIcon"></i>
+            <span id="confirmActionTitle">Confirm Action</span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="confirmActionMessage" class="fs-5"></div>
+        </div>
+        <div class="modal-footer">
+          <form id="confirmActionForm" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">Yes, Continue</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Auto-dismiss flash alerts after 3 seconds
+      setTimeout(function() {
+        var alerts = document.querySelectorAll('.alert-dismissible');
+        alerts.forEach(function(alert) {
+          var bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+          bsAlert.close();
+        });
+      }, 3000);
+
+      var confirmModal = document.getElementById('confirmActionModal');
+      var actionForm = document.getElementById('confirmActionForm');
+      var actionTitle = document.getElementById('confirmActionTitle');
+      var actionIcon = document.getElementById('confirmActionIcon');
+      var actionMessage = document.getElementById('confirmActionMessage');
+      confirmModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var url = button.getAttribute('data-action-url');
+        var message = button.getAttribute('data-action-message');
+        var title = button.getAttribute('data-action-title');
+        var icon = button.getAttribute('data-action-icon');
+        actionForm.action = url;
+        actionTitle.textContent = title || 'Confirm Action';
+        actionMessage.textContent = message || 'Are you sure?';
+        actionIcon.className = 'bi me-2 ' + (icon || 'bi-question-circle-fill');
+      });
+    });
+  </script>
+</body>
+</html>

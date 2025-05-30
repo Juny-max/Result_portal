@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-archive me-2"></i>Archived Students</h2>
+        <a href="{{ url_for('admin.manage_students') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Active Students
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Index Number</th>
+                            <th>Full Name</th>
+                            <th>Program</th>
+                            <th>Level</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td class="fw-semibold">{{ student.index_number }}</td>
+                            <td>{{ student.full_name }}</td>
+                            <td>{{ student.program.name if student.program else 'N/A' }}</td>
+                            <td>Level {{ student.level.name.split()[-1] if student.level else 'N/A' }}</td>
+                            <td class="text-nowrap text-center">
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <form method="post" action="{{ url_for('admin.restore_student', student_id=student.id) }}" class="action-form m-0">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-success" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#confirmActionModal" 
+                                                data-action-url="{{ url_for('admin.restore_student', student_id=student.id) }}" 
+                                                data-action-message="Are you sure you want to restore {{ student.full_name }}?"
+                                                data-action-title="Restore Student" 
+                                                data-action-icon="bi-arrow-clockwise">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i> Restore
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('admin.delete_student', student_id=student.id) }}" class="action-form m-0">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#confirmActionModal" 
+                                                data-action-url="{{ url_for('admin.delete_student', student_id=student.id) }}" 
+                                                data-action-message="WARNING: This will permanently delete {{ student.full_name }} and all their records. This action cannot be undone."
+                                                data-action-title="Delete Student Permanently" 
+                                                data-action-icon="bi-trash">
+                                            <i class="bi bi-trash me-1"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-archive fs-1 d-block mb-2"></i>
+                                    No archived students found.
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-labelledby="confirmActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmActionModalLabel"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="confirmActionMessage">
+                <!-- Message will be inserted here by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmActionButton">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Initialize the confirmation modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const confirmActionModal = document.getElementById('confirmActionModal');
+        if (confirmActionModal) {
+            confirmActionModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const actionUrl = button.getAttribute('data-action-url');
+                const actionMessage = button.getAttribute('data-action-message');
+                const actionTitle = button.getAttribute('data-action-title');
+                const actionIcon = button.getAttribute('data-action-icon');
+                
+                // Update modal content
+                const modalTitle = confirmActionModal.querySelector('.modal-title');
+                const modalBody = document.getElementById('confirmActionMessage');
+                const confirmButton = document.getElementById('confirmActionButton');
+                
+                modalTitle.innerHTML = `<i class="bi ${actionIcon} me-2"></i>${actionTitle}`;
+                modalBody.textContent = actionMessage;
+                
+                // Set up the confirm button
+                confirmButton.onclick = function() {
+                    // Find the form that contains the clicked button
+                    const form = button.closest('form');
+                    if (form) {
+                        form.submit();
+                    } else if (actionUrl) {
+                        window.location.href = actionUrl;
+                    }
+                };
+            });
+        }
+    });
+</script>
+{% endblock %}
