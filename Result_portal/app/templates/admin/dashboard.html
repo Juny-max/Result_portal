@@ -844,6 +844,13 @@ document.addEventListener('DOMContentLoaded', function() {
           <span>Audit Logs</span>
         </a>
       </div>
+      
+      <div class="nav-item">
+        <a href="{{ url_for('admin.backup_database') }}" class="nav-link {{ 'active' if request.endpoint == 'admin.backup_database' }}">
+          <i class="bi bi-database"></i>
+          <span>Backup & Restore</span>
+        </a>
+      </div>
     </div>
   </nav>
 

@@ -45,7 +45,7 @@
                                 <td>{{ student.index_number }}</td>
                                 <td>{{ student.full_name }}</td>
                                 <td>{{ student.user.email if student.user else 'N/A' }}</td>
-                                <td>Level {{ student.level.level_number if student.level else 'N/A' }}</td>
+                                <td>{{ student.level.name if student.level else 'N/A' }}</td>
                                 <td class="text-end">
                                     <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" class="btn btn-sm btn-light border" title="Edit">
                                         <i class="bi bi-pencil"></i>

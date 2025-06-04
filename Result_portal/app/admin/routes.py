@@ -15,11 +15,16 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 import pandas as pd
 from io import BytesIO
+import shutil
+import tempfile
+import zipfile
+import subprocess
+from flask import send_from_directory
 
 from app.admin.forms import UploadResultsForm, AddCourseForm, EditStudentForm, EnterResultForm, StudentSearchForm
-from app.models import User, Student, Course, Result, Program, Level
-from app.utils import allowed_file
-from app.models import AuditLog
+from app.models import User, Student, Course, Result, Program, Level, AuditLog
+from app.utils.helpers import allowed_file
+from app.utils.audit_logger import log_admin_action
 #from app.models import ProgramCourse
 
 # Create and configure the admin blueprint
@@ -546,6 +551,12 @@ def upload_results():
 def manage_courses():
     if not current_user.is_admin():
         return redirect(url_for('main.index'))
+        
+    # Check for any flash messages from the add_course route
+    if request.referrer and 'add_course' in request.referrer:
+        # The flash message is already set in add_course, no need to set it again
+        pass
+        
     courses = Course.query.all()
     programs = Program.query.filter_by(archived=False).all()
     form = AddCourseForm()
@@ -1023,120 +1034,319 @@ def add_course():
 @bp.route('/enter_result', methods=['GET', 'POST'])
 @login_required
 def enter_result():
+    if not current_user.is_admin():
+        return redirect(url_for('main.index'))
+        
+    from app.admin.forms import EnterResultForm
+    from app.models import Program, Level, Student, Result, AuditLog, Course
+    
     form = EnterResultForm()
-
-    # Populate program and level choices
+    
+    # Get all active programs and levels
     programs = Program.query.filter_by(archived=False).all()
     levels = Level.query.filter_by(archived=False).order_by(Level.name).all()
+    
+    # Set program and level choices
     form.program.choices = [(p.id, p.name) for p in programs]
     form.level.choices = [(l.id, l.name) for l in levels]
-
-    selected_program = request.form.get('program', type=int)
-    selected_level = request.form.get('level', type=int)
-
-    # Populate students based on selected program and level
-    if selected_program and selected_level:
-        students = Student.query.filter_by(
-            program_id=selected_program,
-            level_id=selected_level,
-            archived=False
-        ).all()
-        form.student.choices = [(s.id, f"{s.full_name} ({s.index_number})") for s in students]
-    else:
-        form.student.choices = []
-
-    # Populate courses based on selected program
-    if selected_program:
-        program = Program.query.get(selected_program)
-        courses = program.courses if program else []
-        form.course.choices = [(c.id, f"{c.code} - {c.title}") for c in courses]
-    else:
-        form.course.choices = []
-
-    # Handle form submission
-    if form.validate_on_submit():
-        student_id = form.student.data
-        course_id = form.course.data
-        score = form.score.data
-        semester = form.semester.data
-        academic_year = form.academic_year.data
-        remarks = form.remarks.data
-
-        # Get the student to get their current level
-        student = Student.query.get(student_id)
-        if not student:
-            flash('Student not found', 'danger')
-            return redirect(url_for('admin.enter_result'))
-
-        # Check if result exists for this student, course, semester, and academic year
-        existing_result = Result.query.filter_by(
-            student_id=student_id,
-            course_id=course_id,
-            semester=semester,
-            academic_year=academic_year
-        ).first()
-
-        grade = calculate_grade(score)
-
-        if existing_result:
-            # Update existing result
-            existing_result.score = score
-            existing_result.grade = grade
-            existing_result.remarks = remarks
-            existing_result.student_level_id = student.level_id  # Update level
+    
+    # Handle AJAX request for students and courses
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        program_id = request.form.get('program_id')
+        level_id = request.form.get('level_id')
+        
+        if not program_id or not level_id:
+            return jsonify({'error': 'Missing program_id or level_id'}), 400
             
-            # Log the update
-            log = AuditLog(
-                admin_id=current_user.id,
-                action='Update Result',
-                target_type='Result',
-                target_id=existing_result.id,
-                details=f'Updated result for student ID {student_id}, course ID {course_id}'
-            )
-            db.session.add(log)
-        else:
-            # Create new result
-            new_result = Result(
+        try:
+            # Get students for the selected program and level
+            students = Student.query.filter_by(
+                program_id=program_id,
+                level_id=level_id,
+                archived=False
+            ).all()
+            
+            # Get courses for the selected program
+            program = Program.query.get(program_id)
+            courses = program.courses if program else []
+            
+            return jsonify({
+                'students': [{'id': s.id, 'text': f"{s.full_name} ({s.index_number})"} for s in students],
+                'courses': [{'id': c.id, 'text': f"{c.code} - {c.title}"} for c in courses]
+            })
+        except Exception as e:
+            current_app.logger.error(f"Error in AJAX request: {str(e)}")
+            return jsonify({'error': 'An error occurred while fetching data'}), 500
+    
+    # Set initial empty choices for program and level
+    form.program.choices = [('', '-- Select Program --')] + [(str(p.id), p.name) for p in programs]
+    form.level.choices = [('', '-- Select Level --')] + [(str(l.id), l.name) for l in levels]
+    form.student.choices = [('', '-- Select Student --')]
+    form.course.choices = [('', '-- Select Course --')]
+    
+    # Handle AJAX requests for dynamic dropdowns
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        program_id = request.form.get('program')
+        level_id = request.form.get('level')
+        
+        if program_id and level_id:
+            # Get students for the selected program and level
+            students = Student.query.filter_by(
+                program_id=program_id,
+                level_id=level_id,
+                archived=False
+            ).all()
+            
+            # Get courses for the selected program
+            program = Program.query.get(program_id)
+            courses = program.courses if program else []
+            
+            return jsonify({
+                'students': [{'id': s.id, 'text': f"{s.full_name} ({s.index_number})"} for s in students],
+                'courses': [{'id': c.id, 'text': f"{c.code} - {c.title}"} for c in courses]
+            })
+        return jsonify({'error': 'Missing parameters'}), 400
+    
+    # Handle form submission
+    if request.method == 'POST' and not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        current_app.logger.info("Processing form submission")
+        current_app.logger.info(f"Form data: {request.form}")
+        
+        # Always set program and level choices
+        form.program.choices = [(p.id, p.name) for p in Program.query.all()]
+        form.level.choices = [(l.id, l.name) for l in Level.query.all()]
+        
+        # Set choices for validation if we have program and level
+        if form.program.data and form.level.data:
+            try:
+                current_app.logger.info(f"Setting choices for program: {form.program.data}, level: {form.level.data}")
+                
+                # Set student choices
+                students = Student.query.filter_by(
+                    program_id=form.program.data, 
+                    level_id=form.level.data, 
+                    archived=False
+                ).all()
+                form.student.choices = [(str(s.id), f"{s.full_name} ({s.index_number})") for s in students]
+                current_app.logger.info(f"Found {len(students)} students")
+                
+                # Set course choices
+                program = Program.query.get(form.program.data)
+                if program:
+                    form.course.choices = [(str(c.id), f"{c.code} - {c.title}") for c in program.courses]
+                    current_app.logger.info(f"Found {len(program.courses)} courses")
+                else:
+                    form.course.choices = []
+                    current_app.logger.warning("No program found for the selected program ID")
+                
+            except Exception as e:
+                current_app.logger.error(f"Error setting choices: {str(e)}", exc_info=True)
+                flash('An error occurred while loading form data', 'error')
+        
+        # Log form validation errors if any
+        if not form.validate():
+            current_app.logger.warning(f"Form validation failed: {form.errors}")
+            flash('Please correct the errors in the form', 'error')
+    
+    if form.validate_on_submit():
+        try:
+            current_app.logger.info("Form validation passed")
+            student_id = form.student.data
+            course_id = form.course.data
+            score = float(form.score.data)
+            semester = form.semester.data
+            academic_year = form.academic_year.data
+            remarks = form.remarks.data if hasattr(form, 'remarks') and form.remarks.data else None
+            
+            current_app.logger.info(f"Processing form submission - Student ID: {student_id}, Course ID: {course_id}, Score: {score}")
+            
+            # Get the student to ensure it exists
+            student = Student.query.get(student_id)
+            if not student:
+                flash('Selected student not found', 'danger')
+                current_app.logger.error(f"Student not found with ID: {student_id}")
+                return redirect(url_for('admin.enter_result'))
+            
+            current_app.logger.info(f"Found student: {student.full_name} ({student.index_number})")
+                
+            # Get the course
+            course = Course.query.get(course_id)
+            if not course:
+                flash('Course not found', 'danger')
+                current_app.logger.error(f"Course not found with ID: {course_id}")
+                return redirect(url_for('admin.enter_result'))
+                
+            current_app.logger.info(f"Found course: {course.code} - {course.title}")
+            
+            # Check if result already exists for this student and course
+            result = Result.query.filter_by(
                 student_id=student_id,
                 course_id=course_id,
-                score=score,
-                grade=grade,
                 semester=semester,
-                academic_year=academic_year,
-                remarks=remarks,
-                uploaded_by=current_user.id,
-                student_level_id=student.level_id  # Store current level
-            )
-            db.session.add(new_result)
+                academic_year=academic_year
+            ).first()
             
-            # Log the creation
-            log = AuditLog(
-                admin_id=current_user.id,
-                action='Create Result',
-                target_type='Result',
-                target_id=new_result.id,
-                details=f'Created result for student ID {student_id}, course ID {course_id}'
-            )
-            db.session.add(log)
+            if result:
+                # Update existing result
+                result.score = score
+                result.remarks = remarks
+                result.updated_at = datetime.utcnow()
+                db.session.commit()
+                
+                # Log the update
+                log_admin_action(
+                    admin_id=current_user.id,
+                    action='update',
+                    entity_type='result',
+                    entity_id=result.id,
+                    details=f'Updated result for {student.full_name} in {course.code}: {score}%'
+                )
+                
+                flash('Result updated successfully!', 'success')
+                current_app.logger.info(f"Result updated - ID: {result.id}")
+                return redirect(url_for('admin.view_results'))
+            else:
+                # Create new result
+                result = Result(
+                    student_id=student_id,
+                    course_id=course_id,
+                    score=score,
+                    semester=semester,
+                    academic_year=academic_year,
+                    remarks=remarks,
+                    uploaded_by=current_user.id,
+                    grade=calculate_grade(score)  # Calculate grade based on score
+                )
+                
+                db.session.add(result)
+                db.session.commit()
+                
+                # Log the creation
+                log_admin_action(
+                    admin_id=current_user.id,
+                    action='create',
+                    entity_type='result',
+                    entity_id=result.id,
+                    details=f'Created result for {student.full_name} in {course.code}: {score}%'
+                )
+                
+                flash('Result saved successfully!', 'success')
+                current_app.logger.info(f"New result created - ID: {result.id}")
+                return redirect(url_for('admin.view_results'))
+                
+        except Exception as e:
+            db.session.rollback()
+            error_msg = f"An error occurred while saving the result: {str(e)}"
+            flash(error_msg, 'danger')
+            current_app.logger.error(error_msg)
+            current_app.logger.exception(e)
+            return redirect(url_for('admin.enter_result'))
+    elif request.method == 'POST' and not form.validate():
+        # If form validation fails, set the choices again to prevent validation errors
+        form.student.choices = [(s.id, f"{s.full_name} ({s.index_number})") 
+                              for s in Student.query.filter_by(program_id=form.program.data, 
+                                                             level_id=form.level.data, 
+                                                             archived=False).all()]
+        # Get courses associated with the selected program through the many-to-many relationship
+        program = Program.query.get(form.program.data)
+        form.course.choices = [(c.id, f"{c.code} - {c.title}") for c in program.courses] if program else []
+    
+    return render_template('admin/enter_result.html', 
+                         title='Enter Result', 
+                         form=form, 
+                         programs=programs, 
+                         levels=levels,
+                         selected_program=request.args.get('program', ''),
+                         selected_level=request.args.get('level', ''))
 
-        db.session.commit()
-        flash('Result submitted successfully!', 'success')
-        return redirect(url_for('admin.enter_result'))
-
-    # Pass program name for readonly display in template
-    program_name = ''
-    if selected_program:
-        program_obj = Program.query.get(selected_program)
-        program_name = program_obj.name if program_obj else ''
-
-    return render_template(
-        'admin/enter_result.html',
-        form=form,
-        program=program_name,
-        selected_program=selected_program,
-        selected_level=selected_level,
-        levels=levels
-    )
+@bp.route('/update_result_filters', methods=['POST'])
+@login_required
+def update_result_filters():
+    # Log the start of the request
+    current_app.logger.info("\n" + "="*80)
+    current_app.logger.info("UPDATE_RESULT_FILTERS ROUTE CALLED")
+    current_app.logger.info(f"Request method: {request.method}")
+    current_app.logger.info(f"Request headers: {dict(request.headers)}")
+    current_app.logger.info(f"Form data: {request.form}")
+    current_app.logger.info(f"JSON data: {request.get_json(silent=True) or 'No JSON data'}")
+    
+    response_data = {'success': False, 'message': '', 'students': [], 'courses': []}
+    
+    try:
+        # Log the incoming request data
+        current_app.logger.info(f"Raw form data: {request.form}")
+        
+        # Get form data with validation
+        program_id = request.form.get('program', type=int)
+        level_id = request.form.get('level', type=int)
+        
+        current_app.logger.info(f"Extracted program_id: {program_id} (type: {type(program_id)})")
+        current_app.logger.info(f"Extracted level_id: {level_id} (type: {type(level_id)})")
+        
+        current_app.logger.info(f"Program ID: {program_id}, Level ID: {level_id}")
+        
+        if not program_id or not level_id:
+            error_msg = f"Missing required parameters. Program ID: {program_id}, Level ID: {level_id}"
+            current_app.logger.warning(error_msg)
+            response_data['message'] = 'Program and level are required'
+            response_data['details'] = error_msg
+            return jsonify(response_data), 400
+        
+        # Check if program exists
+        program = Program.query.get(program_id)
+        if not program:
+            error_msg = f"Program with ID {program_id} not found"
+            current_app.logger.warning(error_msg)
+            response_data['message'] = 'Program not found'
+            response_data['details'] = error_msg
+            return jsonify(response_data), 404
+        
+        # Get students for the selected program and level
+        try:
+            students = Student.query.filter_by(
+                program_id=program_id,
+                level_id=level_id,
+                archived=False
+            ).order_by(Student.full_name).all()
+            
+            response_data['students'] = [
+                {'id': s.id, 'text': f"{s.full_name} ({s.index_number})"}
+                for s in students
+            ]
+            current_app.logger.info(f"Found {len(students)} students for program {program_id} and level {level_id}")
+            
+        except Exception as e:
+            error_msg = f"Error fetching students: {str(e)}"
+            current_app.logger.error(error_msg, exc_info=True)
+            response_data['message'] = 'Error fetching students'
+            response_data['details'] = error_msg
+            return jsonify(response_data), 500
+        
+        # Get courses for the selected program
+        try:
+            response_data['courses'] = [
+                {'id': c.id, 'text': f"{c.code} - {c.title}"}
+                for c in program.courses
+            ]
+            current_app.logger.info(f"Found {len(response_data['courses'])} courses for program {program_id}")
+            
+        except Exception as e:
+            error_msg = f"Error fetching courses: {str(e)}"
+            current_app.logger.error(error_msg, exc_info=True)
+            response_data['message'] = 'Error fetching courses'
+            response_data['details'] = error_msg
+            return jsonify(response_data), 500
+        
+        response_data['success'] = True
+        response_data['message'] = 'Data retrieved successfully'
+        return jsonify(response_data)
+        
+    except Exception as e:
+        error_msg = f"Unexpected error: {str(e)}"
+        current_app.logger.error(error_msg, exc_info=True)
+        response_data['message'] = 'An unexpected error occurred'
+        response_data['details'] = error_msg
+        return jsonify(response_data), 500
 
 def calculate_grade(score):
     if score >= 80:
@@ -1170,84 +1380,167 @@ def calculate_grade(score):
 def edit_result(result_id):
     if not current_user.is_admin():
         return redirect(url_for('main.index'))
-    result = Result.query.get_or_404(result_id)
+    
     from app.admin.forms import EnterResultForm
-    form = EnterResultForm(obj=result)
-    if form.validate_on_submit():
-        student = Student.query.filter_by(index_number=form.index_number.data).first()
-        course = Course.query.filter_by(code=form.course_code.data).first()
-        if not student or not course:
-            flash('Student or Course not found', 'danger')
-            return render_template('admin/enter_result.html', form=form)
-        result.student_id = student.id
-        result.course_id = course.id
-        result.score = form.score.data
-        result.semester = form.semester.data
-        result.academic_year = form.academic_year.data
-        result.remarks = form.remarks.data
-        result.grade = result.determine_grade()
-        db.session.commit()
-        # Log audit
-        from app.models import AuditLog
-        log = AuditLog(admin_id=current_user.id, action='Edit Result', target_type='Result', target_id=result.id, details=f'Edited result for student {result.student.index_number}, course {result.course.code}')
-        db.session.add(log)
-        db.session.commit()
-        flash('Result updated successfully!', 'success')
+    from app.models import Program, Level, Student, Course, Result, AuditLog
+    
+    # Get the result with related data
+    result = Result.query.options(
+        db.joinedload(Result.student).joinedload(Student.program),
+        db.joinedload(Result.course)
+    ).get_or_404(result_id)
+    
+    if not result.student:
+        flash('Student not found for this result', 'danger')
         return redirect(url_for('admin.view_results'))
-    # Prefill form fields
-    form.index_number.data = result.student.index_number
-    form.course_code.data = result.course.code
+    
+    # Initialize form with data from the result
+    form = EnterResultForm()
+    
+    # Get all active programs and levels for dropdowns
+    programs = Program.query.filter_by(archived=False).all()
+    levels = Level.query.filter_by(archived=False).order_by(Level.name).all()
+    
+    # Set up the form choices
+    form.program.choices = [(str(p.id), p.name) for p in programs]
+    form.level.choices = [(str(l.id), l.name) for l in levels]
+    
+    # Set up course choices for the student's program
+    courses = []
+    if result.student and result.student.program:
+        courses = result.student.program.courses
+    
+    # Convert courses to choices format and ensure they're strings
+    course_choices = [(str(course.id), f"{course.code} - {course.title}") for course in courses]
+    form.course.choices = course_choices
+    
+    # Set the selected course
+    if result.course_id:
+        form.course.data = str(result.course_id)
+    
+    # Handle form submission
+    if form.validate_on_submit():
+        try:
+            # Get the score and calculate grade
+            score = float(form.score.data)
+            grade = calculate_grade(score)
+            
+            # Update result
+            result.score = score
+            result.grade = grade
+            result.semester = form.semester.data
+            result.academic_year = form.academic_year.data
+            result.remarks = form.remarks.data
+            result.uploaded_by = current_user.id
+            result.uploaded_at = datetime.utcnow()
+            
+            # Log the update
+            log = AuditLog(
+                admin_id=current_user.id,
+                action='Update Result',
+                target_type='Result',
+                target_id=result.id,
+                details=f'Updated result for {result.student.index_number} - {result.course.code} (Score: {score})'
+            )
+            db.session.add(log)
+            
+            db.session.commit()
+            flash('Result updated successfully!', 'success')
+            return redirect(url_for('admin.view_results'))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error updating result: {str(e)}")
+            flash('An error occurred while updating the result', 'danger')
+    
+    # Prefill form with existing result data (GET request)
+    # Set program and level based on student's current program
+    program = result.student.program
+    level = result.student.level
+    
+    # Get courses for the program
+    courses = program.courses if program else []
+    
+    # Set form data
+    form.program.data = str(program.id) if program else ''
+    form.level.data = str(level.id) if level else ''
+    form.course.data = str(result.course_id) if result.course_id else ''
     form.score.data = result.score
     form.semester.data = result.semester
     form.academic_year.data = result.academic_year
-    form.remarks.data = result.remarks
-    from app.models import Program
-    return render_template(
-    'admin/enter_result.html',
-    form=form,
-    editing=True,
-    programs=Program.query.filter_by(archived=False).all(),
-    levels=['100', '200', '300', '400'],
-    selected_program='',  # You can set this to the correct program id if available
-    selected_level=result.student.level if hasattr(result.student, 'level') else '',
-    program=result.student.program if hasattr(result.student, 'program') else '',
-    courses=[(result.course.code, f"{result.course.code} - {result.course.title}")] if result.course else [],
-)
+    form.remarks.data = result.remarks or ''
+    
+    # Prepare context for template
+    context = {
+        'form': form,
+        'editing': True,
+        'result_id': result_id,
+        'programs': programs,
+        'student_name': result.student.full_name,
+        'student_index': result.student.index_number,
+        'levels': levels,
+        'selected_program': str(program.id) if program else None,
+        'selected_level': str(level.id) if level else None,
+        'program': program,
+        'courses': [(str(c.id), f"{c.code} - {c.title}") for c in courses],
+        'selected_course': str(result.course_id) if result.course_id else None,
+        'title': 'Edit Result'
+    }
+    
+    return render_template('admin/enter_result.html', **context)
 
 @bp.route('/view_results', methods=['GET', 'POST'])
 @login_required
 def view_results():
     if not current_user.is_admin():
         return redirect(url_for('main.index'))
+        
     # Get filter options
-    from app.models import Program
+    from app.models import Program, Result, Student
+    
+    # Get all active programs and levels
     programs = Program.query.filter_by(archived=False).all()
-    levels = ['100', '200', '300', '400']
-
+    levels = Level.query.filter_by(archived=False).order_by(Level.name).all()
+    
     # Get filter values from request
     selected_program = request.args.get('program', '')
     selected_level = request.args.get('level', '')
-
-    # Query students based on filters
-    students_query = Student.query.filter_by(archived=False)
+    
+    # Base query for results with joined student and course data
+    results_query = db.session.query(Result).join(
+        Student, Result.student_id == Student.id
+    ).join(
+        Program, Student.program_id == Program.id
+    ).options(
+        db.joinedload(Result.student).joinedload(Student.program),
+        db.joinedload(Result.course)
+    )
+    
+    # Apply filters
     if selected_program:
-        if selected_program != '':  # '' means 'All'
-            students_query = students_query.join(Program).filter(Program.name == selected_program)
+        results_query = results_query.filter(Program.id == selected_program)
     if selected_level:
-        students_query = students_query.filter(Student.level == selected_level)
-    students = students_query.all()
-
-    # Gather results for these students
-    student_ids = [s.id for s in students]
-    results = Result.query.filter(Result.student_id.in_(student_ids)).order_by(Result.academic_year.desc(), Result.semester.desc()).all()
-
+        results_query = results_query.filter(Student.level_id == selected_level)
+    
+    # Order and execute the query
+    results = results_query.order_by(
+        Result.academic_year.desc(), 
+        Result.semester.desc(),
+        Student.full_name
+    ).all()
+    
+    # Prepare program and level choices for the filter form
+    program_choices = [(str(p.id), p.name) for p in programs]
+    level_choices = [(str(l.id), l.name) for l in levels]
+    
     return render_template('admin/view_results.html',
         programs=programs,
         levels=levels,
         selected_program=selected_program,
         selected_level=selected_level,
-        students=students,
-        results=results)
+        results=results,
+        program_choices=program_choices,
+        level_choices=level_choices)
 
 @bp.route('/reports')
 @login_required
@@ -1504,8 +1797,8 @@ def add_student():
             # Generate a random password if not provided
             password = form.password.data or User.generate_random_password()
             
-            # Generate username from email (first part before @)
-            username = form.email.data.split('@')[0].lower()
+            # Use the provided username or generate from email if not provided
+            username = form.username.data.lower() if form.username.data else form.email.data.split('@')[0].lower()
             
             # Create user
             user = User(
@@ -1983,3 +2276,198 @@ def delete_student(student_id):
     db.session.commit()
     flash('Student permanently deleted!', 'success')
     return redirect(url_for('admin.archived_students'))
+
+
+def get_backup_dir():
+    """Get or create backup directory"""
+    backup_dir = os.path.join(current_app.root_path, '..', 'backups')
+    os.makedirs(backup_dir, exist_ok=True)
+    return backup_dir
+
+
+@bp.route('/backup', methods=['GET', 'POST'])
+@login_required
+def backup_database():
+    if not current_user.is_admin():
+        return redirect(url_for('main.index'))
+    
+    if request.method == 'POST':
+        try:
+            # Use the backup utility to create a backup
+            from app.utils.backup_utils import create_backup
+            
+            # Create the backup
+            result = create_backup()
+            
+            if not result.get('success'):
+                raise Exception(result.get('error', 'Unknown error during backup'))
+            
+            # Log the backup
+            log = AuditLog(
+                admin_id=current_user.id,
+                action='Backup',
+                target_type='System',
+                details=f'Created backup: {result["filename"]}'
+            )
+            db.session.add(log)
+            db.session.commit()
+            
+            flash(f'Backup created successfully: {result["filename"]}', 'success')
+            
+        except Exception as e:
+            current_app.logger.error(f'Backup failed: {str(e)}', exc_info=True)
+            flash(f'Backup failed: {str(e)}', 'danger')
+    
+    # List all backup files
+    backup_dir = get_backup_dir()
+    backups = []
+    
+    try:
+        for file in os.listdir(backup_dir):
+            if file.endswith('.zip'):
+                file_path = os.path.join(backup_dir, file)
+                backups.append({
+                    'name': file,
+                    'size': os.path.getsize(file_path),
+                    'created': datetime.fromtimestamp(os.path.getctime(file_path))
+                })
+        
+        # Sort by creation time (newest first)
+        backups.sort(key=lambda x: x['created'], reverse=True)
+    except Exception as e:
+        current_app.logger.error(f'Error listing backups: {str(e)}')
+        flash(f'Error listing backups: {str(e)}', 'danger')
+    
+    return render_template('admin/backup.html', backups=backups)
+
+
+@bp.route('/backup/download/<filename>')
+@login_required
+def download_backup(filename):
+    if not current_user.is_admin():
+        return redirect(url_for('main.index'))
+    
+    backup_dir = get_backup_dir()
+    return send_from_directory(
+        backup_dir,
+        filename,
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+@bp.route('/backup/restore', methods=['POST'])
+@login_required
+def restore_backup():
+    if not current_user.is_admin():
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    backup_file = request.form.get('backup_file')
+    if not backup_file:
+        return jsonify({'success': False, 'message': 'No backup file selected'}), 400
+    
+    backup_dir = get_backup_dir()
+    backup_path = os.path.join(backup_dir, backup_file)
+    
+    if not os.path.exists(backup_path):
+        return jsonify({'success': False, 'message': 'Backup file not found'}), 404
+    
+    try:
+        # Extract backup to temp directory
+        temp_dir = tempfile.mkdtemp()
+        
+        with zipfile.ZipFile(backup_path, 'r') as zip_ref:
+            zip_ref.extractall(temp_dir)
+        
+        # Find the SQL file in the extracted files
+        sql_files = [f for f in os.listdir(temp_dir) if f.endswith('.sql')]
+        if not sql_files:
+            shutil.rmtree(temp_dir)
+            return jsonify({'success': False, 'message': 'No SQL file found in backup'}), 400
+        
+        sql_file = os.path.join(temp_dir, sql_files[0])
+        
+        # Get database config
+        db_uri = current_app.config['SQLALCHEMY_DATABASE_URI']
+        db_name = db_uri.split('/')[-1].split('?')[0]
+        db_user = db_uri.split('//')[1].split(':')[0]
+        db_pass = db_uri.split(':')[2].split('@')[0]
+        
+        # Drop and recreate database
+        drop_cmd = [
+            'mysql',
+            f'--user={db_user}',
+            f'--password={db_pass}',
+            '--host=localhost',
+            '-e', f'DROP DATABASE IF EXISTS {db_name}; CREATE DATABASE {db_name};'
+        ]
+        
+        subprocess.run(drop_cmd, check=True)
+        
+        # Restore database
+        restore_cmd = [
+            'mysql',
+            f'--user={db_user}',
+            f'--password={db_pass}',
+            '--host=localhost',
+            db_name
+        ]
+        
+        with open(sql_file, 'r') as f:
+            subprocess.run(restore_cmd, stdin=f, check=True)
+        
+        # Clean up
+        shutil.rmtree(temp_dir)
+        
+        # Log the restore
+        log = AuditLog(
+            admin_id=current_user.id,
+            action='Restore',
+            target_type='System',
+            details=f'Restored from backup: {backup_file}'
+        )
+        db.session.add(log)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Database restored successfully. Please log in again.'
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f'Restore failed: {str(e)}')
+        return jsonify({
+            'success': False,
+            'message': f'Restore failed: {str(e)}'
+        }), 500
+
+
+@bp.route('/backup/delete/<filename>', methods=['POST'])
+@login_required
+def delete_backup(filename):
+    if not current_user.is_admin():
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    backup_dir = get_backup_dir()
+    backup_path = os.path.join(backup_dir, filename)
+    
+    try:
+        if os.path.exists(backup_path):
+            os.remove(backup_path)
+            
+            # Log the deletion
+            log = AuditLog(
+                admin_id=current_user.id,
+                action='Delete Backup',
+                target_type='System',
+                details=f'Deleted backup: {filename}'
+            )
+            db.session.add(log)
+            db.session.commit()
+            
+            return jsonify({'success': True, 'message': 'Backup deleted successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'Backup not found'}), 404
+    except Exception as e:
+        current_app.logger.error(f'Error deleting backup: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500

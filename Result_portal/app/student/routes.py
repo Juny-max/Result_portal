@@ -99,9 +99,14 @@ def dashboard():
     if student.level_id:
         level_results = [
             r for r in results 
-            if hasattr(r, 'student_level_id') and r.student_level_id == student.level_id
+            if (hasattr(r, 'student_level_id') and r.student_level_id == student.level_id) or 
+               (not hasattr(r, 'student_level_id') and student.level_id == student.level_id)
         ]
         level_cgpa = calculate_gpa(level_results)
+        
+        # If no results found with level, use all results as fallback
+        if level_cgpa == "N/A" and results:
+            level_cgpa = calculate_gpa(results)
     
     # Get unread notifications count for the badge
     unread_notifications_count = Notification.query.filter_by(
@@ -192,12 +197,19 @@ def view_results():
         flash('Student profile not found', 'danger')
         return redirect(url_for('main.index'))
     
-    # Get all results for the student, ordered by level, then academic year, then semester
-    results = Result.query.filter_by(student_id=student.id).join(
-        Level, Result.student_level_id == Level.id
-    ).order_by(
-        Level.name, Result.academic_year, Result.semester
-    ).all()
+    # Get all results for the student, including those without a level
+    results = Result.query.filter_by(student_id=student.id).all()
+    
+    # If no results found, try to get results without level filtering
+    if not results:
+        results = Result.query.filter_by(student_id=student.id).all()
+    
+    # Sort results by level, academic year, and semester
+    results.sort(key=lambda x: (
+        x.student_level.name if x.student_level else '',
+        x.academic_year or '',
+        x.semester or ''
+    ))
     
     # Group results by level
     results_by_level = {}

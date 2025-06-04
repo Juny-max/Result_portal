@@ -29,19 +29,36 @@ def create_app(config_class=Config):
     csrf.init_app(app)
     mail.init_app(app)
     
-    # Configure logging
-    if not app.debug and not app.testing:
-        if not os.path.exists('logs'):
+    # Configure logging - always log regardless of debug mode
+    if not os.path.exists('logs'):
+        try:
             os.mkdir('logs')
-        file_handler = RotatingFileHandler('logs/student_portal.log',
-                                         maxBytes=10240, backupCount=10)
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s '
-            '[in %(pathname)s:%(lineno)d]'))
-        file_handler.setLevel(logging.INFO)
-        app.logger.addHandler(file_handler)
-        app.logger.setLevel(logging.INFO)
-        app.logger.info('Student Portal startup')
+        except OSError as e:
+            print(f"Error creating logs directory: {e}")
+    
+    # Clear any existing handlers
+    for handler in app.logger.handlers[:]:
+        app.logger.removeHandler(handler)
+    
+    # Set up file handler
+    file_handler = RotatingFileHandler('logs/student_portal.log',
+                                     maxBytes=10240, backupCount=10)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+    file_handler.setLevel(logging.DEBUG if app.debug else logging.INFO)
+    
+    # Add console handler for debugging
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s'))
+    console_handler.setLevel(logging.DEBUG if app.debug else logging.INFO)
+    
+    # Add both handlers
+    app.logger.addHandler(file_handler)
+    app.logger.addHandler(console_handler)
+    app.logger.setLevel(logging.DEBUG if app.debug else logging.INFO)
+    app.logger.info('Student Portal startup')
+    app.logger.debug('Debug logging is enabled')
     
     # Add time_ago filter
     @app.template_filter('time_ago')

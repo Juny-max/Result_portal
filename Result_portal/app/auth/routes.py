@@ -111,8 +111,8 @@ def change_password():
             flash('Current password is incorrect.', 'danger')
             return redirect(url_for('auth.change_password'))
         
-        # Update password
-        current_user.password_hash = generate_password_hash(form.new_password.data)
+        # Update password using the set_password method
+        current_user.set_password(form.new_password.data)
         current_user.first_login = False  # Mark as not first login anymore
         
         # Log the password change

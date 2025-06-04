@@ -194,14 +194,6 @@
               </button>
               <ul class="dropdown-menu dropdown-menu-end" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(0px, 40px);" data-popper-placement="bottom-start">
                 <li>
-                  <a class="dropdown-item text-warning" 
-                     href="{{ url_for('admin.archive_student', student_id=student.id) }}" 
-                     onclick="return confirm('Archive this student?');">
-                    <i class="bi bi-archive me-2"></i>Archive
-                  </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
                   <a class="dropdown-item text-danger" 
                      href="{{ url_for('admin.archive_student', student_id=student.id) }}" 
                      onclick="return confirm('Are you sure you want to archive this student?');">

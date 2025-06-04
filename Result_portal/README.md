@@ -67,8 +67,14 @@ A comprehensive web application for managing and viewing student results, built 
      ```
 
 7. **Run the Application**
+
+   #### Recommended Method: Using Virtual Environment (Activate First)
    ```bash
-   # Set Flask app
+   # Activate the virtual environment
+   .\venv\Scripts\activate  # Windows
+   # source venv/bin/activate  # macOS/Linux
+   
+   # Set Flask app environment variable
    set FLASK_APP=run.py  # Windows
    # export FLASK_APP=run.py  # macOS/Linux
    
@@ -76,18 +82,20 @@ A comprehensive web application for managing and viewing student results, built 
    flask run
    ```
    
-   Or directly using Python:
+   #### Alternative Method: Direct Python Execution (Not Recommended for Development)
    ```bash
+   # This method runs Python directly from the virtual environment
+   # but doesn't activate the environment in your shell
    .\venv\Scripts\python.exe run.py
    ```
+   > **Note**: The recommended method (activating the virtual environment first) is preferred because:
+   > - It ensures all subsequent commands use the virtual environment
+   > - It makes it clear which environment you're working in
+   > - It's required for some Flask commands and extensions
 
 8. **Create Admin Account**
    ```bash
-   # Make sure your virtual environment is activated
-   .\venv\Scripts\activate  # Windows
-   # source venv/bin/activate  # macOS/Linux
-   
-   # Run the admin creation script
+   # With virtual environment activated, simply run:
    python create_admin.py
    ```
    - Follow the prompts to create an admin account
