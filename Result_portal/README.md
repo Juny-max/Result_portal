@@ -190,6 +190,29 @@ MAIL_DEFAULT_SENDER=your-email@gmail.com
    flask run --port 5001
    ```
 
+## 🚀 Future Updates
+
+### 🔄 Upcoming Features
+
+#### 🗑️ Enhanced Student Deletion
+- **Current Behavior**: When an admin deletes a student, the record is only removed from the students table
+- **Planned Update**: 
+  - Implement cascading deletion to remove associated user accounts when a student is deleted
+  - This will ensure complete data consistency by removing both student and user records
+  - Add confirmation dialogs to prevent accidental deletions
+  - Implement soft deletion with archive functionality before permanent removal
+
+#### 📊 Additional Planned Features
+- **Automated Result Analysis**: AI-powered insights into student performance trends
+- **Parent/Guardian Portal**: Allow guardians to monitor student progress
+- **Mobile App**: Native mobile application for on-the-go access
+- **Advanced Reporting**: Custom report builder with visualization options
+
+#### 🛠 Technical Improvements
+- **API Development**: RESTful API for third-party integrations
+- **Performance Optimization**: Database query optimization and caching
+- **Enhanced Security**: Two-factor authentication and rate limiting
+
 ## 📂 Project Structure
 
 ```

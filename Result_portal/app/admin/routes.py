@@ -1804,9 +1804,10 @@ def add_student():
             user = User(
                 username=username,
                 email=form.email.data.lower(),
-                user_type='student',
-                password_hash=generate_password_hash(password, method='pbkdf2:sha256')
+                user_type='student'
             )
+            # Set password using the model's method for consistent hashing
+            user.set_password(password)
             db.session.add(user)
             db.session.flush()  # Get user.id before commit
             logger.debug(f"Created user with ID: {user.id}")
